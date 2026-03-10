@@ -1,85 +1,477 @@
 /* ============================================================
    Campus Navigator — script.js
-   No ngrok needed. Works via Render (https) deployment.
+   Leaflet map | Arrow marker | Completed/remaining route
+   Satellite toggle | Voice | GPS current location
    ============================================================ */
 
-let session_id    = null;
-let watchId       = null;
-let totalSteps    = 0;
-let currentStep   = 0;
-let destName      = "";
-
 /* ------------------------------------------------------------------ */
-/*  POPULATE DROPDOWNS FROM SERVER                                     */
+/*  CAMPUS NODE COORDINATES (embedded for map use)                    */
 /* ------------------------------------------------------------------ */
 
-async function loadLocations() {
-  try {
-    const res  = await fetch("/locations");
-    const data = await res.json();
+const CAMPUS_NODES = {
+  "loc_001":{"name":"Admin Block","lat":12.313179,"lng":76.613621},
+  "loc_002":{"name":"Chemistry Department","lat":12.314043,"lng":76.613671},
+  "loc_003":{"name":"Environment Department","lat":12.314715,"lng":76.613324},
+  "loc_004":{"name":"Polymer Science Department","lat":12.315276,"lng":76.613540},
+  "loc_005":{"name":"Golden Jubilee Block","lat":12.316302,"lng":76.613812},
+  "loc_006":{"name":"CMS Block","lat":12.317437,"lng":76.613652},
+  "loc_007":{"name":"PDA Block","lat":12.317498,"lng":76.613620},
+  "loc_008":{"name":"Rubber Institute","lat":12.315459,"lng":76.612111},
+  "loc_009":{"name":"Mechanical Auditorium","lat":12.314248,"lng":76.612735},
+  "loc_010":{"name":"Mechanical Department","lat":12.313748,"lng":76.612795},
+  "loc_011":{"name":"Electrical and Electronics Department","lat":12.313156,"lng":76.612834},
+  "loc_012":{"name":"Ganesha Temple","lat":12.312990,"lng":76.612878},
+  "loc_013":{"name":"Pot Circle","lat":12.313071,"lng":76.614117},
+  "loc_014":{"name":"Department of Physical Training","lat":12.312281,"lng":76.613875},
+  "loc_015":{"name":"Boys Hostel","lat":12.311515,"lng":76.613404},
+  "loc_016":{"name":"Entrance Gate","lat":12.313092,"lng":76.615176},
+  "loc_017":{"name":"Polytechnic For Women","lat":12.318428,"lng":76.614015},
+  "loc_018":{"name":"SJCE Women Hostel","lat":12.318334,"lng":76.612050},
+  "loc_019":{"name":"Exit Gate","lat":12.318439,"lng":76.614723},
+  "loc_020":{"name":"Circle Towards Exit","lat":12.318372,"lng":76.613526},
+  "loc_021":{"name":"CS Lawn Circle","lat":12.315585,"lng":76.613664},
+  "loc_022":{"name":"Hockey Ground","lat":12.313941,"lng":76.614032},
+  "loc_023":{"name":"Football Ground","lat":12.314855,"lng":76.613971},
+  "loc_024":{"name":"Dean Office Circle","lat":12.313103,"lng":76.613772},
+  "loc_025":{"name":"Basketball Court","lat":12.312622,"lng":76.614176},
+  "loc_026":{"name":"Gymnasium","lat":12.312197,"lng":76.614209},
+  "loc_027":{"name":"Chemistry Circle","lat":12.314390,"lng":76.613645},
+  "loc_028":{"name":"Department of Civil Engineering","lat":12.314295,"lng":76.613048},
+  "loc_029":{"name":"Department of Biotechnology","lat":12.314852,"lng":76.612652}
+};
 
-    const startSel = document.getElementById("start-select");
-    const destSel  = document.getElementById("dest-select");
+/* ------------------------------------------------------------------ */
+/*  STATE                                                              */
+/* ------------------------------------------------------------------ */
 
-    data.forEach(loc => {
-      const o1 = new Option(loc.name, loc.id);
-      const o2 = new Option(loc.name, loc.id);
-      startSel.appendChild(o1);
-      destSel.appendChild(o2);
+let session_id      = null;
+let watchId         = null;
+let totalSteps      = 0;
+let currentStep     = 0;
+let destName        = "";
+let allLocations    = [];
+let lastInstruction = "";
+let lastSpokenStep  = -1;
+let lastSpokenDist  = -1;
+let spokenMilestones = new Set();
+
+let lastLat     = null;
+let lastLng     = null;
+let userHeading = -1;
+
+// Full route node IDs for map drawing
+let routeNodeIds = [];
+
+/* ------------------------------------------------------------------ */
+/*  MAP SETUP                                                          */
+/* ------------------------------------------------------------------ */
+
+let map, streetLayer, satelliteLayer, isSatellite = false;
+let arrowMarker    = null;   // user position arrow
+let routeRemaining = null;   // blue polyline
+let routeCompleted = null;   // grey polyline
+let waypointMarkers = [];    // dots on each node
+let userCentered   = true;   // auto-pan flag
+
+function initMap() {
+  // Centre on SJCE campus
+  map = L.map("map", {
+    center: [12.3148, 76.6134],
+    zoom: 17,
+    zoomControl: true,
+    attributionControl: false
+  });
+
+  // Street layer (OpenStreetMap)
+  streetLayer = L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    { maxZoom: 20 }
+  ).addTo(map);
+
+  // Satellite layer (ESRI World Imagery)
+  satelliteLayer = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    { maxZoom: 20 }
+  );
+
+  // Plot all campus nodes as small dots (non-nav mode)
+  Object.entries(CAMPUS_NODES).forEach(([id, node]) => {
+    const dot = L.divIcon({
+      className: "",
+      html: `<div class="waypoint-dot" style="opacity:0.5"></div>`,
+      iconSize: [12, 12],
+      iconAnchor: [6, 6]
     });
+    L.marker([node.lat, node.lng], { icon: dot })
+      .bindPopup(`<b>${node.name}</b>`)
+      .addTo(map);
+  });
 
-    // Enable start button when both selects have a value
-    [startSel, destSel].forEach(sel => {
-      sel.addEventListener("change", () => {
-        const ok = startSel.value && destSel.value && startSel.value !== destSel.value;
-        document.getElementById("start-btn").disabled = !ok;
-      });
-    });
+  // Detect user panning away — disable auto-center
+  map.on("dragstart", () => {
+    userCentered = false;
+    document.getElementById("recenter-btn").classList.add("show");
+  });
+}
 
-  } catch (e) {
-    setGpsStatus("error", "Could not load campus data.");
+function toggleMapLayer() {
+  const btn = document.getElementById("map-toggle");
+  if (isSatellite) {
+    map.removeLayer(satelliteLayer);
+    streetLayer.addTo(map);
+    btn.textContent = "🛰 SATELLITE";
+    isSatellite = false;
+  } else {
+    map.removeLayer(streetLayer);
+    satelliteLayer.addTo(map);
+    btn.textContent = "🗺 STREET";
+    isSatellite = true;
+  }
+}
+
+function recenterMap() {
+  if (lastLat !== null) {
+    map.setView([lastLat, lastLng], 18);
+    userCentered = true;
+    document.getElementById("recenter-btn").classList.remove("show");
   }
 }
 
 /* ------------------------------------------------------------------ */
-/*  GPS STATUS HELPERS                                                 */
+/*  ARROW MARKER (direction of movement)                              */
 /* ------------------------------------------------------------------ */
 
-function setGpsStatus(state, msg) {
-  const dot  = document.getElementById("gps-dot");
-  const text = document.getElementById("gps-text");
-  dot.className  = "gps-dot " + state;
-  text.innerText = msg;
+function createArrowIcon(heading) {
+  const h = heading >= 0 ? heading : 0;
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
+      <circle cx="18" cy="18" r="14" fill="#00d4ff" fill-opacity="0.25" stroke="#00d4ff" stroke-width="1.5"/>
+      <circle cx="18" cy="18" r="7"  fill="#00d4ff"/>
+      <polygon points="18,4 22,16 18,13 14,16"
+               fill="white" transform="rotate(${h}, 18, 18)"/>
+    </svg>`;
+  return L.divIcon({
+    className: "",
+    html: svg,
+    iconSize: [36, 36],
+    iconAnchor: [18, 18]
+  });
+}
+
+function updateArrowMarker(lat, lng, heading) {
+  const icon = createArrowIcon(heading);
+  if (!arrowMarker) {
+    arrowMarker = L.marker([lat, lng], { icon, zIndexOffset: 1000 }).addTo(map);
+  } else {
+    arrowMarker.setLatLng([lat, lng]);
+    arrowMarker.setIcon(icon);
+  }
+  if (userCentered) {
+    map.setView([lat, lng], map.getZoom());
+  }
 }
 
 /* ------------------------------------------------------------------ */
-/*  VOICE GUIDANCE                                                     */
+/*  ROUTE DRAWING                                                      */
 /* ------------------------------------------------------------------ */
 
-function speak(text) {
-  const voiceOn = document.getElementById("voice-toggle").checked;
-  if (!voiceOn || !window.speechSynthesis) return;
+function drawRoute(nodeIds, completedUpTo) {
+  // Clear existing lines and waypoint markers
+  if (routeRemaining) { map.removeLayer(routeRemaining); routeRemaining = null; }
+  if (routeCompleted) { map.removeLayer(routeCompleted); routeCompleted = null; }
+  waypointMarkers.forEach(m => map.removeLayer(m));
+  waypointMarkers = [];
+
+  const allCoords  = nodeIds.map(id => {
+    const n = CAMPUS_NODES[id];
+    return n ? [n.lat, n.lng] : null;
+  }).filter(Boolean);
+
+  if (allCoords.length < 2) return;
+
+  const doneCoords = allCoords.slice(0, completedUpTo + 1);
+  const leftCoords = allCoords.slice(completedUpTo);
+
+  // Completed path — grey dashed
+  if (doneCoords.length >= 2) {
+    routeCompleted = L.polyline(doneCoords, {
+      color: "#4a5568", weight: 4, opacity: 0.6, dashArray: "6 6"
+    }).addTo(map);
+  }
+
+  // Remaining path — bright blue solid
+  if (leftCoords.length >= 2) {
+    routeRemaining = L.polyline(leftCoords, {
+      color: "#00d4ff", weight: 5, opacity: 0.9
+    }).addTo(map);
+  }
+
+  // Waypoint dots
+  nodeIds.forEach((id, idx) => {
+    const n = CAMPUS_NODES[id];
+    if (!n) return;
+    const isDone = idx < completedUpTo;
+    const isDest = idx === nodeIds.length - 1;
+
+    let cls = "waypoint-dot";
+    if (isDone) cls += " done";
+    if (isDest) cls += " dest";
+
+    const dotIcon = L.divIcon({
+      className: "",
+      html: `<div class="${cls}"></div>`,
+      iconSize: isDest ? [16, 16] : [12, 12],
+      iconAnchor: isDest ? [8, 8] : [6, 6]
+    });
+
+    const m = L.marker([n.lat, n.lng], { icon: dotIcon })
+      .bindPopup(`<b>${n.name}</b>${isDest ? "<br><i>🏁 Destination</i>" : ""}`)
+      .addTo(map);
+    waypointMarkers.push(m);
+  });
+
+  // Fit map to show full route initially
+  if (completedUpTo === 0) {
+    map.fitBounds(L.polyline(allCoords).getBounds(), { padding: [40, 40] });
+    userCentered = false;
+    document.getElementById("recenter-btn").classList.add("show");
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  SPEAK                                                              */
+/* ------------------------------------------------------------------ */
+
+function speak(text, onEnd) {
+  if (!window.speechSynthesis) { if (onEnd) onEnd(); return; }
   window.speechSynthesis.cancel();
   const utt = new SpeechSynthesisUtterance(text);
   utt.lang  = "en-IN";
-  utt.rate  = 0.95;
+  utt.rate  = 0.93;
+  utt.pitch = 1.0;
+  if (onEnd) utt.onend = onEnd;
   window.speechSynthesis.speak(utt);
+}
+
+/* ------------------------------------------------------------------ */
+/*  LISTEN                                                             */
+/* ------------------------------------------------------------------ */
+
+function listen() {
+  return new Promise((resolve, reject) => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { reject("not_supported"); return; }
+    setVoiceStatus("listening");
+    const rec = new SR();
+    rec.lang = "en-IN"; rec.interimResults = false; rec.maxAlternatives = 3;
+    rec.onresult = e => { setVoiceStatus("idle"); resolve(Array.from(e.results[0]).map(r => r.transcript.trim().toLowerCase())); };
+    rec.onerror  = e => { setVoiceStatus("idle"); reject(e.error); };
+    rec.onend    = ()  => setVoiceStatus("idle");
+    rec.start();
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/*  MATCH SPOKEN TEXT                                                  */
+/* ------------------------------------------------------------------ */
+
+function matchLocation(transcripts) {
+  for (const transcript of transcripts) {
+    const cleaned = transcript.toLowerCase().replace(/[^a-z0-9 ]/g, "");
+    let best = null, bestScore = 0;
+    for (const loc of allLocations) {
+      const locName  = loc.name.toLowerCase().replace(/[^a-z0-9 ]/g, "");
+      const locWords = locName.split(" ");
+      const spoken   = cleaned.split(" ");
+      const overlap  = locWords.filter(w => spoken.some(s => s.includes(w) || w.includes(s))).length;
+      const score    = overlap / locWords.length;
+      const contains = cleaned.includes(locName) || locName.includes(cleaned);
+      const fs = contains ? 1 : score;
+      if (fs > bestScore) { bestScore = fs; best = loc; }
+    }
+    if (bestScore >= 0.4) return best;
+  }
+  return null;
+}
+
+/* ------------------------------------------------------------------ */
+/*  HEADING                                                            */
+/* ------------------------------------------------------------------ */
+
+function computeHeading(lat1, lng1, lat2, lng2) {
+  const r = d => d * Math.PI / 180;
+  const dLng = r(lng2 - lng1);
+  const x = Math.sin(dLng) * Math.cos(r(lat2));
+  const y = Math.cos(r(lat1)) * Math.sin(r(lat2)) - Math.sin(r(lat1)) * Math.cos(r(lat2)) * Math.cos(dLng);
+  return (Math.atan2(x, y) * 180 / Math.PI + 360) % 360;
+}
+
+/* ------------------------------------------------------------------ */
+/*  VOICE FLOW                                                         */
+/* ------------------------------------------------------------------ */
+
+async function runVoiceSetup() {
+  setVoiceFlowVisible(true);
+  const startMatched = await askVoiceLocation("start");
+  const destMatched  = await askVoiceLocation("dest");
+  if (startMatched && destMatched) {
+    setVoicePrompt("✅ Both set. Starting navigation...");
+    speak("Starting navigation now.", async () => { await delay(400); startNavigation(); });
+  }
+}
+
+async function askVoiceLocation(which) {
+  const isStart = which === "start";
+
+  if (isStart) {
+    const q = "Select your starting point. Shall I use your current location? Say yes to use GPS, or say the name of your starting location.";
+    setVoicePrompt(q); speak(q); await delay(3800);
+    try {
+      const t = await listen();
+      setVoicePrompt('Heard: "' + t[0] + '"');
+      const isYes = t.some(x => x.includes("yes")||x.includes("yeah")||x.includes("sure")||x.includes("ok")||x.includes("current")||x.includes("my location")||x.includes("here")||x.includes("use my"));
+      if (isYes) {
+        setVoicePrompt("📡 Using your GPS location...");
+        speak("Sure, using your current GPS location.");
+        await useCurrentLocationAsync();
+        checkStartReady(); return { fromGPS: true };
+      }
+      const direct = matchLocation(t);
+      if (direct) {
+        document.getElementById("start-select").value = direct.id;
+        document.getElementById("start-select").classList.add("voice-set");
+        setVoicePrompt("✅ Start: " + direct.name);
+        speak("Got it. Starting location is " + direct.name + ".");
+        checkStartReady(); await delay(2600); return direct;
+      }
+      setVoicePrompt("❓ Could not match. Asking again...");
+      speak("Sorry, I could not find that. Let me ask again."); await delay(2500);
+    } catch(e) {
+      if (e === "not_supported") { speak("Voice not supported. Please use dropdowns."); return null; }
+    }
+  }
+
+  const question = isStart ? "Please say your starting location clearly." : "Where do you want to go? Please say your destination.";
+  let matched = null, attempts = 0;
+  while (!matched && attempts < 3) {
+    attempts++;
+    setVoicePrompt(question); speak(question); await delay(3200);
+    try {
+      const t = await listen();
+      setVoicePrompt('Heard: "' + t[0] + '" — matching...');
+      matched = matchLocation(t);
+      if (matched) {
+        const selId = isStart ? "start-select" : "dest-select";
+        document.getElementById(selId).value = matched.id;
+        document.getElementById(selId).classList.add("voice-set");
+        setVoicePrompt("✅ " + (isStart ? "Start" : "Destination") + ": " + matched.name);
+        speak("Got it. " + (isStart ? "Starting location is " : "Destination is ") + matched.name + ".");
+        checkStartReady(); await delay(2600);
+      } else {
+        const r = attempts < 3 ? "Sorry, try again." : "Please use the dropdown below.";
+        setVoicePrompt("❓ Could not match. " + (attempts < 3 ? "Retrying..." : "Use dropdown."));
+        speak(r); await delay(3000);
+      }
+    } catch(e) {
+      if (e === "not_supported") { speak("Voice not supported."); return null; }
+      return null;
+    }
+  }
+  checkStartReady(); return matched;
+}
+
+/* ------------------------------------------------------------------ */
+/*  GPS CURRENT LOCATION (async)                                      */
+/* ------------------------------------------------------------------ */
+
+function useCurrentLocation() { useCurrentLocationAsync(); }
+
+function useCurrentLocationAsync() {
+  return new Promise(resolve => {
+    const btn = document.getElementById("gps-locate-btn");
+    btn.disabled = true; btn.innerText = "📡 Locating...";
+    setGpsStatus("waiting", "Getting your current position...");
+    navigator.geolocation.getCurrentPosition(
+      async pos => {
+        try {
+          const res  = await fetch("/nearest_location", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({lat:pos.coords.latitude,lng:pos.coords.longitude}) });
+          const data = await res.json();
+          if (data.error) { setGpsStatus("error",data.error); speak(data.error); btn.disabled=false; btn.innerText="📍 Use My Current Location"; resolve(null); return; }
+          document.getElementById("start-select").value = data.location_id;
+          document.getElementById("start-select").classList.add("voice-set");
+          setVoicePrompt("📍 " + data.name + " (" + Math.round(data.distance_m) + "m away)");
+          setGpsStatus("active","Location found: " + data.name);
+          speak("Your current location is " + data.name + ".");
+          btn.disabled=false; btn.innerText="✅ " + data.name;
+          checkStartReady(); resolve(data);
+        } catch(e) { setGpsStatus("error","Could not reach server."); btn.disabled=false; btn.innerText="📍 Use My Current Location"; resolve(null); }
+      },
+      () => { setGpsStatus("error","GPS denied."); speak("Could not get location. Allow GPS."); btn.disabled=false; btn.innerText="📍 Use My Current Location"; resolve(null); },
+      { enableHighAccuracy:true, timeout:15000, maximumAge:0 }
+    );
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/*  UI HELPERS                                                         */
+/* ------------------------------------------------------------------ */
+
+const delay = ms => new Promise(r => setTimeout(r, ms));
+
+function setVoiceStatus(state) {
+  const btn = document.getElementById("voice-input-btn");
+  const mic = document.getElementById("mic-icon");
+  if (state === "listening") { btn.classList.add("listening"); mic.innerText = "🔴"; setVoicePrompt("Listening..."); }
+  else { btn.classList.remove("listening"); mic.innerText = "🎙️"; }
+}
+function setVoicePrompt(msg) { const e = document.getElementById("voice-prompt"); if (e) e.innerText = msg; }
+function setVoiceFlowVisible(show) { document.getElementById("voice-flow").style.display = show ? "block" : "none"; }
+function toggleVoiceFlow() {
+  const vf = document.getElementById("voice-flow");
+  vf.style.display = vf.style.display === "block" ? "none" : "block";
+  if (vf.style.display === "block") setVoicePrompt("Press the mic and speak your location.");
+}
+function setGpsStatus(state, msg) {
+  document.getElementById("gps-dot").className = "gps-dot " + state;
+  document.getElementById("gps-text").innerText = msg;
+}
+function checkStartReady() {
+  const s = document.getElementById("start-select").value;
+  const d = document.getElementById("dest-select").value;
+  document.getElementById("start-btn").disabled = !(s && d && s !== d);
+}
+
+/* ------------------------------------------------------------------ */
+/*  LOAD LOCATIONS                                                     */
+/* ------------------------------------------------------------------ */
+
+async function loadLocations() {
+  try {
+    const res = await fetch("/locations");
+    const raw = await res.json();
+    allLocations = raw.map(l => ({ id: l.id.trim().replace(/\r/g,""), name: l.name.trim().replace(/\r/g,"") }));
+    const ss = document.getElementById("start-select");
+    const ds = document.getElementById("dest-select");
+    allLocations.forEach(l => { ss.appendChild(new Option(l.name, l.id)); ds.appendChild(new Option(l.name, l.id)); });
+    [ss, ds].forEach(sel => sel.addEventListener("change", () => {
+      checkStartReady();
+      const s = ss.value, d = ds.value;
+      if (s && d && s !== d) startNavigation();
+    }));
+  } catch(e) { setGpsStatus("error","Could not load campus data."); }
 }
 
 /* ------------------------------------------------------------------ */
 /*  PAGE LOAD                                                          */
 /* ------------------------------------------------------------------ */
 
-window.onload = function () {
-
-  if (!navigator.geolocation) {
-    setGpsStatus("error", "Geolocation not supported on this device.");
-    return;
-  }
-
-  setGpsStatus("waiting", "Waiting for GPS permission...");
-  loadLocations();
-
+window.onload = async function() {
+  initMap();
+  if (!navigator.geolocation) { setGpsStatus("error","Geolocation not supported."); return; }
+  setGpsStatus("waiting","Ready.");
+  await loadLocations();
+  await delay(600);
+  speak("Welcome to Campus Navigator. Use voice, GPS, or the dropdowns to begin.");
 };
 
 /* ------------------------------------------------------------------ */
@@ -87,57 +479,43 @@ window.onload = function () {
 /* ------------------------------------------------------------------ */
 
 async function startNavigation() {
-
-  const start = document.getElementById("start-select").value;
-  const dest  = document.getElementById("dest-select").value;
-  destName    = document.getElementById("dest-select").selectedOptions[0].text;
-
-  if (!start || !dest) return;
-
+  const start = document.getElementById("start-select").value.trim();
+  const dest  = document.getElementById("dest-select").value.trim();
+  destName    = document.getElementById("dest-select").selectedOptions[0].text.trim();
+  if (!start || !dest || start === dest) return;
   document.getElementById("start-btn").disabled = true;
-  setGpsStatus("waiting", "Starting navigation...");
+  setGpsStatus("waiting","Starting navigation...");
 
   try {
-    const res  = await fetch("/start_navigation", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ start, destination: dest })
-    });
+    const res  = await fetch("/start_navigation", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({start,destination:dest}) });
     const data = await res.json();
+    if (data.error) { setGpsStatus("error","Error: "+data.error); speak("Error: "+data.error); document.getElementById("start-btn").disabled=false; return; }
 
-    if (data.error) {
-      setGpsStatus("error", "Error: " + data.error);
-      document.getElementById("start-btn").disabled = false;
-      return;
-    }
+    session_id   = data.session_id;
+    totalSteps   = data.total_steps;
+    currentStep  = 0;
+    routeNodeIds = data.route;
+    lastLat = null; lastLng = null; userHeading = -1;
+    lastInstruction = ""; lastSpokenStep = -1; lastSpokenDist = -1;
+    spokenMilestones = new Set();
 
-    session_id  = data.session_id;
-    totalSteps  = data.route.length - 1;
-    currentStep = 0;
+    // Draw full route on map
+    drawRoute(routeNodeIds, 0);
 
-    // Switch to nav card
-    document.getElementById("setup-card").style.display = "none";
-    document.getElementById("nav-card").style.display   = "block";
-    document.getElementById("instruction-box").style.display = "block";
-    document.getElementById("stop-btn").style.display   = "block";
+    // Show nav UI, hide setup
+    document.getElementById("setup-card").style.display        = "none";
+    document.getElementById("instruction-banner").classList.add("show");
+    document.getElementById("stop-wrap").style.display         = "block";
+    document.getElementById("map").classList.add("nav-active");
+    map.invalidateSize();
 
     updateProgress(0);
-    speak("Navigation started. Head towards " + destName);
-    setGpsStatus("waiting", "Acquiring GPS signal...");
+    speak("Navigation started. Heading to " + destName + ". Acquiring GPS signal.");
+    setGpsStatus("waiting","Acquiring GPS signal...");
 
-    // Start watching GPS
-    watchId = navigator.geolocation.watchPosition(
-      sendLocation,
-      gpsError,
-      {
-        enableHighAccuracy: true,
-        maximumAge:         0,
-        timeout:            30000   // 30s — enough for cold GPS start outdoors
-      }
-    );
-
-  } catch (e) {
-    setGpsStatus("error", "Server connection failed.");
+    watchId = navigator.geolocation.watchPosition(sendLocation, gpsError, { enableHighAccuracy:true, maximumAge:0, timeout:30000 });
+  } catch(e) {
+    setGpsStatus("error","Server connection failed."); speak("Could not connect to server.");
     document.getElementById("start-btn").disabled = false;
   }
 }
@@ -147,60 +525,72 @@ async function startNavigation() {
 /* ------------------------------------------------------------------ */
 
 async function sendLocation(position) {
-
   const lat = position.coords.latitude;
   const lng = position.coords.longitude;
 
-  setGpsStatus("active", "GPS active · Tracking...");
+  // Update heading from movement
+  if (lastLat !== null && lastLng !== null) {
+    const dist = Math.sqrt(Math.pow((lat-lastLat)*111000,2)+Math.pow((lng-lastLng)*111000*Math.cos(lat*Math.PI/180),2));
+    if (dist > 3) userHeading = computeHeading(lastLat, lastLng, lat, lng);
+  }
+  lastLat = lat; lastLng = lng;
+
+  // Update arrow on map
+  updateArrowMarker(lat, lng, userHeading);
+  setGpsStatus("active","GPS active · Tracking" + (userHeading>=0 ? " · "+Math.round(userHeading)+"°":""));
 
   try {
-    const res  = await fetch("/update_location", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ session_id, lat, lng })
-    });
+    const res  = await fetch("/update_location", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({session_id,lat,lng,heading:userHeading}) });
     const data = await res.json();
-
-    if (data.error) {
-      setGpsStatus("error", "Session error.");
-      return;
-    }
-
-    // Navigation complete
-    if (data.instruction === "Navigation complete.") {
-      showArrived();
-      return;
-    }
+    if (data.error) { setGpsStatus("error","Session error."); return; }
+    if (data.instruction === "Navigation complete.") { showArrived(); return; }
 
     const instruction = data.instruction;
     const distance    = Math.round(data.distance);
     const step        = data.step ?? currentStep;
 
-    // Update UI
-    if (instruction !== document.getElementById("instruction-text").innerText) {
-      speak(instruction);
+    // Redraw route to update completed/remaining split
+    if (step !== currentStep) {
+      currentStep = step;
+      drawRoute(routeNodeIds, step);
     }
 
-    document.getElementById("instruction-text").innerText = instruction;
-    document.getElementById("distance-text").innerText    = distance + " m";
-    document.getElementById("step-badge").innerText       = "STEP " + (step + 1);
+    // Speak on step change only
+    if (step !== lastSpokenStep) {
+      speak(instruction);
+      lastInstruction = instruction; lastSpokenStep = step;
+      lastSpokenDist = distance; spokenMilestones = new Set();
+    }
 
-    currentStep = step;
+    // Speak at distance milestones (80, 50, 30, 15m) once per step
+    for (const m of [80, 50, 30, 15]) {
+      if (distance <= m && !spokenMilestones.has(m)) {
+        spokenMilestones.add(m);
+        if (Math.abs(distance - lastSpokenDist) > 3) {
+          speak("In " + distance + " meters, " + instruction.toLowerCase());
+          lastSpokenDist = distance;
+        }
+        break;
+      }
+    }
+
+    // Update banner UI
+    document.getElementById("instruction-text").innerText = instruction;
+    document.getElementById("banner-distance").innerText  = distance + " m";
+    document.getElementById("step-badge").innerText       = "STEP " + (step + 1);
     updateProgress(step);
 
-  } catch (e) {
-    setGpsStatus("error", "Connection lost. Retrying...");
-  }
+  } catch(e) { setGpsStatus("error","Connection lost. Retrying..."); }
 }
 
 /* ------------------------------------------------------------------ */
-/*  PROGRESS BAR                                                       */
+/*  PROGRESS                                                           */
 /* ------------------------------------------------------------------ */
 
 function updateProgress(step) {
-  const pct = totalSteps > 0 ? Math.round((step / totalSteps) * 100) : 0;
-  document.getElementById("progress-fill").style.width  = pct + "%";
-  document.getElementById("step-counter").innerText     = step + " / " + totalSteps + " steps";
+  const pct = totalSteps > 0 ? Math.round((step/totalSteps)*100) : 0;
+  document.getElementById("progress-fill").style.width = pct + "%";
+  document.getElementById("step-counter").innerText    = step + " / " + totalSteps;
 }
 
 /* ------------------------------------------------------------------ */
@@ -208,17 +598,19 @@ function updateProgress(step) {
 /* ------------------------------------------------------------------ */
 
 function showArrived() {
-  if (watchId !== null) {
-    navigator.geolocation.clearWatch(watchId);
-    watchId = null;
-  }
-  document.getElementById("instruction-box").style.display = "none";
-  document.getElementById("arrived-box").style.display     = "block";
-  document.getElementById("arrived-name").innerText        = "You have reached " + destName;
-  document.getElementById("stop-btn").style.display        = "none";
-  document.getElementById("progress-fill").style.width     = "100%";
-  setGpsStatus("active", "Arrived at destination.");
-  speak("You have arrived at " + destName);
+  if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+
+  // Complete the route line visually
+  drawRoute(routeNodeIds, routeNodeIds.length - 1);
+
+  document.getElementById("instruction-banner").classList.remove("show");
+  document.getElementById("stop-wrap").style.display  = "none";
+  document.getElementById("arrived-card").style.display = "block";
+  document.getElementById("arrived-box").style.display  = "block";
+  document.getElementById("arrived-name").innerText   = "You have reached " + destName;
+  document.getElementById("progress-fill").style.width = "100%";
+  setGpsStatus("active","Arrived at destination.");
+  speak("You have arrived at " + destName + ". Navigation complete.");
 }
 
 /* ------------------------------------------------------------------ */
@@ -226,18 +618,41 @@ function showArrived() {
 /* ------------------------------------------------------------------ */
 
 function stopNavigation() {
-  if (watchId !== null) {
-    navigator.geolocation.clearWatch(watchId);
-    watchId = null;
-  }
-  session_id = null;
-  document.getElementById("nav-card").style.display        = "none";
-  document.getElementById("setup-card").style.display      = "block";
-  document.getElementById("arrived-box").style.display     = "none";
-  document.getElementById("instruction-box").style.display = "block";
-  document.getElementById("start-btn").disabled            = false;
-  setGpsStatus("waiting", "Navigation stopped.");
+  if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+  session_id = null; lastInstruction = ""; userHeading = -1; lastLat = null; lastLng = null;
+  lastSpokenStep = -1; spokenMilestones = new Set(); routeNodeIds = [];
+
+  // Clear map overlays
+  if (routeRemaining) { map.removeLayer(routeRemaining); routeRemaining = null; }
+  if (routeCompleted) { map.removeLayer(routeCompleted); routeCompleted = null; }
+  if (arrowMarker)    { map.removeLayer(arrowMarker);    arrowMarker = null; }
+  waypointMarkers.forEach(m => map.removeLayer(m)); waypointMarkers = [];
+
+  // Reset all campus dots
+  Object.entries(CAMPUS_NODES).forEach(([id, node]) => {
+    const dot = L.divIcon({ className:"", html:`<div class="waypoint-dot" style="opacity:0.5"></div>`, iconSize:[12,12], iconAnchor:[6,6] });
+    L.marker([node.lat, node.lng], {icon:dot}).bindPopup(`<b>${node.name}</b>`).addTo(map);
+  });
+
+  document.getElementById("map").classList.remove("nav-active");
+  map.invalidateSize();
+  document.getElementById("instruction-banner").classList.remove("show");
+  document.getElementById("stop-wrap").style.display         = "none";
+  document.getElementById("arrived-card").style.display      = "none";
+  document.getElementById("setup-card").style.display        = "block";
+  document.getElementById("start-btn").disabled              = true;
+  document.getElementById("start-select").value              = "";
+  document.getElementById("dest-select").value               = "";
+  document.getElementById("start-select").classList.remove("voice-set");
+  document.getElementById("dest-select").classList.remove("voice-set");
+  document.getElementById("gps-locate-btn").innerText        = "📍 Use My Current Location";
+  document.getElementById("gps-locate-btn").disabled         = false;
+  setVoiceFlowVisible(false);
+  setGpsStatus("waiting","Navigation stopped.");
   speak("Navigation stopped.");
+  map.setView([12.3148, 76.6134], 17);
+  document.getElementById("recenter-btn").classList.remove("show");
+  userCentered = true;
 }
 
 /* ------------------------------------------------------------------ */
@@ -245,10 +660,7 @@ function stopNavigation() {
 /* ------------------------------------------------------------------ */
 
 function gpsError(error) {
-  const msgs = {
-    1: "Location permission denied. Allow it in browser settings.",
-    2: "GPS signal unavailable. Move to an open area.",
-    3: "GPS timed out. Move outdoors and try again."
-  };
-  setGpsStatus("error", msgs[error.code] || "Unknown GPS error.");
+  const msgs = {1:"Location permission denied. Allow it in settings.",2:"GPS unavailable. Move outdoors.",3:"GPS timed out. Move to open area."};
+  const msg = msgs[error.code]||"Unknown GPS error.";
+  setGpsStatus("error",msg); speak(msg);
 }
