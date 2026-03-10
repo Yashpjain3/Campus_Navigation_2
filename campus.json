@@ -1,291 +1,387 @@
 {
   "locations": {
+    "loc_022": {
+      "name": "Hockey Ground",
+      "description": "You are at the Hockey Ground.",
+      "lat": 12.313702611648196,
+      "lng": 76.61410073906313
+    },
+    "loc_002": {
+      "name": "Chemistry Department",
+      "description": "You are at the Chemistry Department, featuring Labs and Staffrooms.",
+      "lat": 12.314014207480326,
+      "lng": 76.61368252764498
+    },
+    "loc_017": {
+      "name": "Polytechnic For Women",
+      "description": "You are at the Polytechnic for Women.",
+      "lat": 12.31843726916479,
+      "lng": 76.61406290814398
+    },
+    "loc_018": {
+      "name": "SJCE Women Hostel",
+      "description": "You are at the Women's Hostel.",
+      "lat": 12.318612332381718,
+      "lng": 76.61128538304763
+    },
+    "loc_019": {
+      "name": "Exit Gate",
+      "description": "You are at the Main Exit Gate.",
+      "lat": 12.318467376926534,
+      "lng": 76.6146825207772
+    },
+    "loc_003": {
+      "name": "Environment Department",
+      "description": "You are at the Environment Department classrooms and staffrooms.",
+      "lat": 12.314684939253254,
+      "lng": 76.61341817683558
+    },
+    "loc_029": {
+      "name": "Department of Biotechnology",
+      "description": "You are at the Biotechnology Department.",
+      "lat": 12.314756265263256,
+      "lng": 76.61267626339804
+    },
+    "loc_004": {
+      "name": "Polymer Science Department",
+      "description": "You are at the Polymer Science Department.",
+      "lat": 12.315299754396065,
+      "lng": 76.61355401991744
+    },
+    "loc_021": {
+      "name": "CS Lawn Circle",
+      "description": "You are at the circle between the CS lawn and PS parking.",
+      "lat": 12.315594219258813,
+      "lng": 76.61366076686653
+    },
+    "loc_008": {
+      "name": "Rubber Institute",
+      "description": "You are at the Indian Rubber Institute and Alok\u2019s Kitchen.",
+      "lat": 12.315482653888253,
+      "lng": 76.61205642785677
+    },
+    "loc_005": {
+      "name": "Golden Jubilee Block",
+      "description": "You are at the Golden Jubilee Block. This includes CS, IS, CSBS, MECH, BCA departments, and the Placement Cell.",
+      "lat": 12.316367938062982,
+      "lng": 76.61376993999346
+    },
+    "loc_006": {
+      "name": "CMS Block",
+      "description": "You are at the CMS Block, housing BCA and MBA classrooms.",
+      "lat": 12.317764379619717,
+      "lng": 76.61394874381392
+    },
+    "loc_007": {
+      "name": "PDA Block",
+      "description": "You are at the Polytechnic for Differently Abled.",
+      "lat": 12.317469248574866,
+      "lng": 76.61339200845174
+    },
+    "loc_009": {
+      "name": "Mechanical Auditorium",
+      "description": "You are at the Cultural Auditorium of SJCE.",
+      "lat": 12.314265999124345,
+      "lng": 76.6127416031224
+    },
+    "loc_027": {
+      "name": "Chemistry Circle",
+      "description": "You are at the Chemistry Circle intersection.",
+      "lat": 12.31434634083405,
+      "lng": 76.61364752363198
+    },
+    "loc_011": {
+      "name": "Electrical and Electronics Department",
+      "description": "You are at the E&E Department classrooms and labs.",
+      "lat": 12.313167959764712,
+      "lng": 76.61283362022158
+    },
+    "loc_010": {
+      "name": "Mechanical Department",
+      "description": "You are at the Mechanical Department classrooms and labs.",
+      "lat": 12.313944784987072,
+      "lng": 76.61277650490251
+    },
+    "loc_028": {
+      "name": "Department of Civil Engineering",
+      "description": "You are at the Civil Engineering Department.",
+      "lat": 12.314320658153463,
+      "lng": 76.61331231625559
+    },
+    "loc_023": {
+      "name": "Football Ground",
+      "description": "You are at the Football Ground.",
+      "lat": 12.314804874459838,
+      "lng": 76.61397070836091
+    },
+    "loc_016": {
+      "name": "Entrance Gate",
+      "description": "You are at the Main Entrance Gate.",
+      "lat": 12.313123610989763,
+      "lng": 76.61521067151989
+    },
+    "loc_013": {
+      "name": "Pot Circle",
+      "description": "You are at the Pot Circle near the entrance.",
+      "lat": 12.313031367737949,
+      "lng": 76.61419057219899
+    },
+    "loc_025": {
+      "name": "Basketball Court",
+      "description": "You are at the Basketball Court.",
+      "lat": 12.312696986912485,
+      "lng": 76.61422199865103
+    },
+    "loc_026": {
+      "name": "Gymnasium",
+      "description": "You are at the Gymnasium.",
+      "lat": 12.312167826400568,
+      "lng": 76.6142756159552
+    },
+    "loc_024": {
+      "name": "Dean Office Circle",
+      "description": "You are at the Dean Office Circle.",
+      "lat": 12.313022605925454,
+      "lng": 76.6139256808354
+    },
+    "loc_014": {
+      "name": "Department of Physical Training",
+      "description": "You are at the Physical Training Department.",
+      "lat": 12.312303099811686,
+      "lng": 76.61387392725118
+    },
+    "loc_015": {
+      "name": "Boys Hostel",
+      "description": "You are at the Boys Hostel.",
+      "lat": 12.31254368461778,
+      "lng": 76.61388169523116
+    },
+    "loc_020": {
+      "name": "Circle Towards Exit",
+      "description": "You are at the junction circle leading towards the exit.",
+      "lat": 12.318400436116079,
+      "lng": 76.61353715159908
+    },
     "loc_001": {
       "name": "Admin Block",
       "description": "You are at the Admin Block. This building houses all administrative offices and the EC department.",
       "lat": 12.313179,
       "lng": 76.613621
     },
-    "loc_002": {
-      "name": "Chemistry Department",
-      "description": "You are at the Chemistry Department, featuring Labs and Staffrooms.",
-      "lat": 12.314043,
-      "lng": 76.613671
-    },
-    "loc_003": {
-      "name": "Environment Department",
-      "description": "You are at the Environment Department classrooms and staffrooms.",
-      "lat": 12.314715,
-      "lng": 76.613324
-    },
-    "loc_004": {
-      "name": "Polymer Science Department",
-      "description": "You are at the Polymer Science Department.",
-      "lat": 12.315276,
-      "lng": 76.613540
-    },
-    "loc_005": {
-      "name": "Golden Jubilee Block",
-      "description": "You are at the Golden Jubilee Block. This includes CS, IS, CSBS, MECH, BCA departments, and the Placement Cell.",
-      "lat": 12.316302,
-      "lng": 76.613812
-    },
-    "loc_006": {
-      "name": "CMS Block",
-      "description": "You are at the CMS Block, housing BCA and MBA classrooms.",
-      "lat": 12.317437,
-      "lng": 76.613652
-    },
-    "loc_007": {
-      "name": "PDA Block",
-      "description": "You are at the Polytechnic for Differently Abled.",
-      "lat": 12.317498,
-      "lng": 76.613620
-    },
-    "loc_008": {
-      "name": "Rubber Institute",
-      "description": "You are at the Indian Rubber Institute and Alok’s Kitchen.",
-      "lat": 12.315459,
-      "lng": 76.612111
-    },
-    "loc_009": {
-      "name": "Mechanical Auditorium",
-      "description": "You are at the Cultural Auditorium of SJCE.",
-      "lat": 12.314248,
-      "lng": 76.6127351
-    },
-    "loc_010": {
-      "name": "Mechanical Department",
-      "description": "You are at the Mechanical Department classrooms and labs.",
-      "lat": 12.313748,
-      "lng": 76.612795
-    },
-    "loc_011": {
-      "name": "Electrical and Electronics Department",
-      "description": "You are at the E&E Department classrooms and labs.",
-      "lat": 12.313156,
-      "lng": 76.612834
-    },
     "loc_012": {
       "name": "Ganesha Temple",
       "description": "You are at the Ganesha Temple.",
-      "lat": 12.312990,
+      "lat": 12.31299,
       "lng": 76.612878
-    },
-    "loc_013": {
-      "name": "Pot Circle",
-      "description": "You are at the Pot Circle near the entrance.",
-      "lat": 12.313071,
-      "lng": 76.614117
-    },
-    "loc_014": {
-      "name": "Department of Physical Training",
-      "description": "You are at the Physical Training Department.",
-      "lat": 12.312281,
-      "lng": 76.613875
-    },
-    "loc_015": {
-      "name": "Boys Hostel",
-      "description": "You are at the Boys Hostel.",
-      "lat": 12.311515,
-      "lng": 76.613404
-    },
-    "loc_016": {
-      "name": "Entrance Gate",
-      "description": "You are at the Main Entrance Gate.",
-      "lat": 12.313092,
-      "lng": 76.615176
-    },
-    "loc_017": {
-      "name": "Polytechnic For Women",
-      "description": "You are at the Polytechnic for Women.",
-      "lat": 12.318428,
-      "lng": 76.614015
-    },
-    "loc_018": {
-      "name": "SJCE Women Hostel",
-      "description": "You are at the Women's Hostel.",
-      "lat": 12.318334,
-      "lng": 76.612050
-    },
-    "loc_019": {
-      "name": "Exit Gate",
-      "description": "You are at the Main Exit Gate.",
-      "lat": 12.318439,
-      "lng": 76.614723
-    },
-    "loc_021": {
-      "name": "CS Lawn Circle",
-      "description": "You are at the circle between the CS lawn and PS parking.",
-      "lat": 12.315585,
-      "lng": 76.613664
-    },
-    "loc_020": {
-      "name": "Circle Towards Exit",
-      "description": "You are at the junction circle leading towards the exit.",
-      "lat": 12.318372,
-      "lng": 76.613526
-    },
-    "loc_022": {
-      "name": "Hockey Ground",
-      "description": "You are at the Hockey Ground.",
-      "lat": 12.313941,
-      "lng": 76.614032
-    },
-    "loc_023": {
-      "name": "Football Ground",
-      "description": "You are at the Football Ground.",
-      "lat": 12.314855,
-      "lng": 76.613971
-    },
-    "loc_024": {
-      "name": "Dean Office Circle",
-      "description": "You are at the Dean Office Circle.",
-      "lat": 12.313103,
-      "lng": 76.613772
-    },
-    "loc_025": {
-      "name": "Basketball Court",
-      "description": "You are at the Basketball Court.",
-      "lat": 12.312622,
-      "lng": 76.614176
-    },
-    "loc_026": {
-      "name": "Gymnasium",
-      "description": "You are at the Gymnasium.",
-      "lat": 12.312197,
-      "lng": 76.614209
-    },
-    "loc_027": {
-      "name": "Chemistry Circle",
-      "description": "You are at the Chemistry Circle intersection.",
-      "lat": 12.314390,
-      "lng": 76.613645
-    },
-    "loc_028": {
-      "name": "Department of Civil Engineering",
-      "description": "You are at the Civil Engineering Department.",
-      "lat": 12.314295,
-      "lng": 76.613048
-    },
-    "loc_029": {
-      "name": "Department of Biotechnology",
-      "description": "You are at the Biotechnology Department.",
-      "lat": 12.314852,
-      "lng": 76.612652
     }
   },
   "paths": {
     "loc_016": {
-      "loc_013": "Walk 111 meters straight to reach the Pot Circle."
+      "loc_013": [
+        [
+          12.313122924311784,
+          76.61520670895027
+        ],
+        [
+          12.313028795005962,
+          76.61418248731684
+        ]
+      ]
     },
     "loc_013": {
-      "loc_016": "Walk 111 meters Back to reach the Entrance Gate.",
-      "loc_024": "Walk 30 meters straight to reach the Dean Office Circle.",
-      "loc_022": "Walk 82 meters towards the right to reach the Hockey Ground.",
-      "loc_025": "Walk 46 meters towards the left to reach the Basketball Court."
+      "loc_016": [
+        [
+          12.313028795005962,
+          76.61418248731684
+        ],
+        [
+          12.313122924311784,
+          76.61520670895027
+        ]
+      ],
+      "loc_024": [
+        [
+          12.3130286526265,
+          76.61418719343817
+        ],
+        [
+          12.313019505499938,
+          76.61392426348795
+        ]
+      ],
+      "loc_022": [],
+      "loc_025": []
     },
     "loc_024": {
-      "loc_013": "Walk 30 meters back to reach the Pot Circle.",
-      "loc_012": "Walk 134 meters straight to reach the Ganesha Temple.",
-      "loc_001": "Walk 27 meters right to reach the Admin Block.",
-      "loc_015": "Walk 71 meters straight to reach the Boys Hostel and PT department."
+      "loc_013": [
+        [
+          12.313019505499938,
+          76.61392426348795
+        ],
+        [
+          12.3130286526265,
+          76.61418719343817
+        ]
+      ],
+      "loc_012": [],
+      "loc_001": [
+        [
+          12.313019445647214,
+          76.61392504052714
+        ],
+        [
+          12.313014547036289,
+          76.61358116750688
+        ],
+        [
+          12.313058944034537,
+          76.61357409364635
+        ],
+        [
+          12.313149217943376,
+          76.61363834526588
+        ]
+      ],
+      "loc_015": []
     },
     "loc_025": {
-      "loc_013": "Walk 46 meters back to reach the Pot Circle.",
-      "loc_026": "Walk 47 meters straight to reach the Gymnasium."
+      "loc_013": [],
+      "loc_026": []
     },
     "loc_026": {
-      "loc_025": "Walk 47 meters back to reach the Basketball Court."
+      "loc_025": []
     },
     "loc_022": {
-      "loc_013": "Walk 82 meters back to reach the Pot Circle.",
-      "loc_023": "Walk 111 meters straight to reach the Football Ground."
+      "loc_013": [],
+      "loc_023": []
     },
     "loc_023": {
-      "loc_022": "Walk 111 meters back to reach the Hockey Ground.",
-      "loc_021": "Walk 92 meters straight to reach the CS Lawn Circle."
+      "loc_022": [],
+      "loc_021": []
     },
     "loc_001": {
-      "loc_024": "Walk 27 meters left to reach the Dean Office Circle.",
-      "loc_002": "Walk 114 meters right to reach the Chemistry Department."
+      "loc_024": [
+        [
+          12.313149217943376,
+          76.61363834526588
+        ],
+        [
+          12.313058944034537,
+          76.61357409364635
+        ],
+        [
+          12.313014547036289,
+          76.61358116750688
+        ],
+        [
+          12.313019445647214,
+          76.61392504052714
+        ]
+      ],
+      "loc_002": []
     },
     "loc_002": {
-      "loc_001": "Walk 114 meters back to reach the Admin Block.",
-      "loc_003": "Walk 69 meters straight and a slight left to reach the Environment Department.",
-      "loc_027": "Walk 19 meters straight towards the Chemistry Circle."
+      "loc_001": [],
+      "loc_003": [],
+      "loc_027": []
     },
     "loc_027": {
-      "loc_002": "Walk 19 meters back to reach the Chemistry Department.",
-      "loc_028": "Walk 50 meters to reach the Civil Department."
+      "loc_002": [],
+      "loc_028": []
     },
     "loc_029": {
-      "loc_003": "Walk 80 meters  back to reach the Environment Department."
+      "loc_003": []
     },
     "loc_003": {
-      "loc_002": "Walk 29 meters back and slight right to reach the Chemistry Department.",
-      "loc_029": "Walk 80 meters straight to reach the Biotechnology Department.",
-      "loc_028": "Walk 50 meters back and take the next right and walk 50 meters to reach the Civil Engineering Department."
+      "loc_002": [],
+      "loc_029": [],
+      "loc_028": []
     },
     "loc_028": {
-      "loc_003": "Walk 50 meters back and take left and walk for 50 meters to reach the Environment Department.",
-      "loc_009": "Walk 48 meters straight to reach the Mechanical Auditorium."
+      "loc_003": [],
+      "loc_009": []
     },
     "loc_021": {
-      "loc_028": "Walk 14 meters back and take slight right and walk straight for 10 meters to reach the Polymer Science Department.",
-      "loc_023": "Walk 14 meters back take a slight left and walk straight for 78 metrers to reach the Football Ground.",
-      "loc_005": "Walk 81 meters straight after taking a slight right to reach the Golden Jubilee Block.",
-      "loc_008": "Walk 158 meters towards the left to reach the Rubber Institute."
+      "loc_028": [],
+      "loc_023": [],
+      "loc_005": [],
+      "loc_008": []
     },
     "loc_012": {
-      "loc_024": "Walk 134 meters back towards the entry gate to reach the Dean Office Circle.",
-      "loc_011": "Walk 30 meters towards your right to reach the Electrical Department, the Destination will be to your left."
+      "loc_024": [],
+      "loc_011": []
     },
     "loc_011": {
-      "loc_012": "Walk 30 meters towards your left to reach the Ganesha Temple, the Destination will be to your right.",
-      "loc_010": "Walk 78 meters towards your right to reach the Mechanical Department, the Destination will be to your left."
+      "loc_012": [],
+      "loc_010": []
     },
     "loc_010": {
-      "loc_011": "Walk 78 meters  towards your left to reach the Electrical Department, the Destination will be to your right.",
-      "loc_009": "Walk 58 meters towards your right to reach the Mechanical Auditorium, the Destination will be to your left."
+      "loc_011": [],
+      "loc_009": []
     },
     "loc_009": {
-      "loc_010": "Walk 58 meters towards your left to reach the Mechanical Department, the Destination will be to your right.",
-      "loc_008": "Walk 140 meters towards your right to reach the Rubber Institute."
+      "loc_010": [],
+      "loc_008": []
     },
     "loc_008": {
-      "loc_009": "Walk 140 meters back to reach the Mechanical Auditorium.",
-      "loc_021": "Walk 158 meters towards your right to reach the CS Lawn Circle."
+      "loc_009": [],
+      "loc_021": []
     },
     "loc_005": {
-      "loc_021": "Walk 81 meters back to reach the CS Lawn Circle.",
-      "loc_006": "Walk 132 meters straight to reach the CMS Block."
+      "loc_021": [],
+      "loc_006": []
     },
-    "loc_006": { 
-      "loc_005": "Walk 132 meters back to reach the Golden Jubilee Block.",
-      "loc_007": "Walk 24 meters straight and slight left to reach the PDA Block."
+    "loc_006": {
+      "loc_005": [],
+      "loc_007": [
+        [
+          12.31772212253945,
+          76.6136182824784
+        ],
+        [
+          12.31755447641055,
+          76.61345053733544
+        ],
+        [
+          12.317452967523352,
+          76.61338967976883
+        ]
+      ]
     },
     "loc_007": {
-      "loc_006": "Walk 4 meters left and 20 meters light left to reach the CMS Block.",
-      "loc_020": "Walk 15 meters towards the right and and take a slight left and walk straight for 80 meters to reach the Circle towards exit"
+      "loc_006": [
+        [
+          12.317452967523352,
+          76.61338967976883
+        ],
+        [
+          12.31755447641055,
+          76.61345053733544
+        ],
+        [
+          12.31772212253945,
+          76.6136182824784
+        ]
+      ],
+      "loc_020": []
     },
     "loc_020": {
-      "loc_007": "Walk 80 meters back and take a slight right and walk straight for 15 meters to reach the PDA Block.",
-      "loc_017": "Walk 53 meters towards your right and then take the left and walk straight for 15 meters to reach the Polytechnic For Women.",
-      "loc_018": "Walk 168 meters towards the left to reach the Women's Hostel Road."
+      "loc_007": [],
+      "loc_017": [],
+      "loc_018": []
     },
     "loc_017": {
-      "loc_020": "Walk 53 meters towards your left to reach the Circle Towards Exit.",
-      "loc_019": "Walk 70 meters towards your right to reach the Exit Gate."
+      "loc_020": [],
+      "loc_019": []
     },
     "loc_018": {
-      "loc_020": "Walk 168 meters back to reach the Circle Towards Exit."
+      "loc_020": []
     },
     "loc_019": {
-      "loc_017": "Walk 70 meters straight and take right abd walkk for 15 meters to reach the Polytechnic For Women."
+      "loc_017": []
     },
     "loc_015": {
-      "loc_024": "Walk 71 meters back to reach the Dean Circle."
+      "loc_024": []
     }
   }
 }
