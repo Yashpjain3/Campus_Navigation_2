@@ -60,7 +60,8 @@ let lastLng     = null;
 let userHeading = -1;
 
 // Full route node IDs for map drawing
-let routeNodeIds = [];
+let routeNodeIds  = [];
+let roadGeometry  = [];  // per-step road waypoints from server
 
 /* ------------------------------------------------------------------ */
 /*  MAP SETUP                                                          */
@@ -176,65 +177,93 @@ function updateArrowMarker(lat, lng, heading) {
 /* ------------------------------------------------------------------ */
 
 function drawRoute(nodeIds, completedUpTo) {
-  // Clear existing lines and waypoint markers
+  // Clear existing lines and markers
   if (routeRemaining) { map.removeLayer(routeRemaining); routeRemaining = null; }
   if (routeCompleted) { map.removeLayer(routeCompleted); routeCompleted = null; }
   waypointMarkers.forEach(m => map.removeLayer(m));
   waypointMarkers = [];
 
-  const allCoords  = nodeIds.map(id => {
-    const n = CAMPUS_NODES[id];
-    return n ? [n.lat, n.lng] : null;
-  }).filter(Boolean);
+  if (nodeIds.length < 2) return;
 
-  if (allCoords.length < 2) return;
+  // Build full route coords using real road waypoints where available,
+  // falling back to straight line between nodes
+  function getSegmentCoords(stepIdx) {
+    const fromId = nodeIds[stepIdx];
+    const toId   = nodeIds[stepIdx + 1];
+    const wps    = roadGeometry[stepIdx];         // [[lat,lng], ...]
+    if (wps && wps.length >= 2) return wps;       // real road geometry
+    // Fallback: straight line between the two nodes
+    const a = CAMPUS_NODES[fromId], b = CAMPUS_NODES[toId];
+    if (!a || !b) return [];
+    return [[a.lat, a.lng], [b.lat, b.lng]];
+  }
 
-  const doneCoords = allCoords.slice(0, completedUpTo + 1);
-  const leftCoords = allCoords.slice(completedUpTo);
+  // Split into completed and remaining segments
+  const doneCoords = [];
+  const leftCoords = [];
 
-  // Completed path — grey dashed
+  for (let i = 0; i < nodeIds.length - 1; i++) {
+    const seg = getSegmentCoords(i);
+    if (i < completedUpTo) {
+      doneCoords.push(...seg);
+    } else {
+      // Include last done node as start of remaining so lines connect
+      if (leftCoords.length === 0 && doneCoords.length > 0) {
+        leftCoords.push(doneCoords[doneCoords.length - 1]);
+      }
+      leftCoords.push(...seg);
+    }
+  }
+
+  // Draw completed path — grey dashed
   if (doneCoords.length >= 2) {
     routeCompleted = L.polyline(doneCoords, {
-      color: "#4a5568", weight: 4, opacity: 0.6, dashArray: "6 6"
+      color: "#4a5568", weight: 4, opacity: 0.7, dashArray: "6 6"
     }).addTo(map);
   }
 
-  // Remaining path — bright blue solid
+  // Draw remaining path — bright blue
   if (leftCoords.length >= 2) {
     routeRemaining = L.polyline(leftCoords, {
-      color: "#00d4ff", weight: 5, opacity: 0.9
+      color: "#00d4ff", weight: 6, opacity: 0.95
     }).addTo(map);
   }
 
-  // Waypoint dots
+  // Waypoint dots at each node
   nodeIds.forEach((id, idx) => {
     const n = CAMPUS_NODES[id];
     if (!n) return;
     const isDone = idx < completedUpTo;
     const isDest = idx === nodeIds.length - 1;
+    const isNext = idx === completedUpTo + 1;
 
     let cls = "waypoint-dot";
     if (isDone) cls += " done";
     if (isDest) cls += " dest";
 
+    const size = isDest ? [16,16] : [12,12];
+    const anchor = isDest ? [8,8] : [6,6];
+
     const dotIcon = L.divIcon({
       className: "",
       html: `<div class="${cls}"></div>`,
-      iconSize: isDest ? [16, 16] : [12, 12],
-      iconAnchor: isDest ? [8, 8] : [6, 6]
+      iconSize: size, iconAnchor: anchor
     });
 
     const m = L.marker([n.lat, n.lng], { icon: dotIcon })
-      .bindPopup(`<b>${n.name}</b>${isDest ? "<br><i>🏁 Destination</i>" : ""}`)
+      .bindPopup(`<b>${n.name}</b>${isDest ? "<br><i>🏁 Destination</i>" : ""}${isNext ? "<br><i>▶ Next waypoint</i>" : ""}`)
       .addTo(map);
     waypointMarkers.push(m);
   });
 
-  // Fit map to show full route initially
+  // Fit full route on first draw
   if (completedUpTo === 0) {
-    map.fitBounds(L.polyline(allCoords).getBounds(), { padding: [40, 40] });
-    userCentered = false;
-    document.getElementById("recenter-btn").classList.add("show");
+    const allPts = [...doneCoords, ...leftCoords];
+    if (allPts.length >= 2) {
+      map.fitBounds(L.polyline(allPts).getBounds(), { padding: [50, 50] });
+      userCentered = false;
+      document.getElementById("recenter-btn").classList.add("show");
+    }
   }
 }
 
@@ -495,6 +524,7 @@ async function startNavigation() {
     totalSteps   = data.total_steps;
     currentStep  = 0;
     routeNodeIds = data.route;
+    roadGeometry = data.road_geometry || [];
     lastLat = null; lastLng = null; userHeading = -1;
     lastInstruction = ""; lastSpokenStep = -1; lastSpokenDist = -1;
     spokenMilestones = new Set();
