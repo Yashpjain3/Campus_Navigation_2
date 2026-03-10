@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Campus Navigator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0b0f1a;
+      --surface: #131929;
+      --card:    #1a2235;
+      --border:  #2a3a55;
+      --accent:  #00d4ff;
+      --accent2: #00ff9d;
+      --warn:    #ffb800;
+      --danger:  #ff4d6d;
+      --text:    #e8f0fe;
+      --muted:   #7a8dab;
+      --radius:  16px;
+    }
+
+    body {
+      font-family: 'Sora', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-bottom: 60px;
+      overflow-x: hidden;
+    }
+
+    header {
+      width: 100%;
+      background: linear-gradient(135deg, #0d1b2a, #0b1622);
+      border-bottom: 1px solid var(--border);
+      padding: 22px 24px 20px;
+      text-align: center;
+      position: relative;
+    }
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 60px; height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 2px;
+    }
+    .logo-row {
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      margin-bottom: 4px;
+    }
+    .logo-icon {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    h1 { font-family: 'Space Mono', monospace; font-size: 20px; letter-spacing: 2px; }
+    .subtitle { font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+
+    #gps-bar {
+      margin: 20px 16px 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: flex; align-items: center; gap: 10px;
+      width: calc(100% - 32px); max-width: 480px;
+    }
+    .gps-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--muted); flex-shrink: 0; transition: background 0.4s;
+    }
+    .gps-dot.active  { background: var(--accent2); box-shadow: 0 0 8px var(--accent2); animation: pulse 1.5s infinite; }
+    .gps-dot.error   { background: var(--danger); }
+    .gps-dot.waiting { background: var(--warn); animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+    #gps-text { font-size: 13px; color: var(--muted); flex: 1; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin: 16px;
+      width: calc(100% - 32px); max-width: 480px;
+    }
+    .card-label {
+      font-size: 11px; font-family: 'Space Mono', monospace;
+      color: var(--accent); letter-spacing: 2px; text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+
+    .voice-row {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 16px; margin-bottom: 16px;
+    }
+    .voice-label { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+    .toggle { position: relative; width: 46px; height: 26px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; inset: 0; background: var(--border);
+      border-radius: 26px; cursor: pointer; transition: background 0.3s;
+    }
+    .slider::before {
+      content: ''; position: absolute;
+      width: 18px; height: 18px; left: 4px; bottom: 4px;
+      background: white; border-radius: 50%; transition: transform 0.3s;
+    }
+    .toggle input:checked + .slider { background: var(--accent2); }
+    .toggle input:checked + .slider::before { transform: translateX(20px); }
+
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px; }
+    .field select {
+      width: 100%; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); font-family: 'Sora', sans-serif;
+      font-size: 15px; padding: 13px 16px; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a8dab' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 16px center;
+      cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .field select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,212,255,0.12); }
+
+    .btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; padding: 16px; border: none; border-radius: 12px;
+      font-family: 'Sora', sans-serif; font-size: 17px; font-weight: 600;
+      cursor: pointer; transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+      margin-top: 6px;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #0099cc);
+      color: #0b0f1a; box-shadow: 0 4px 24px rgba(0,212,255,0.25);
+    }
+    .btn-primary:hover:not(:disabled) { box-shadow: 0 6px 32px rgba(0,212,255,0.4); }
+    .btn-stop {
+      background: transparent; border: 1px solid var(--danger);
+      color: var(--danger); font-size: 15px; padding: 12px;
+      margin-top: 10px; display: none;
+    }
+
+    .step-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #0b0f1a; font-family: 'Space Mono', monospace;
+      font-size: 11px; font-weight: 700; padding: 4px 12px;
+      border-radius: 20px; letter-spacing: 1px; margin-bottom: 14px;
+    }
+
+    #instruction-text {
+      font-size: 19px; font-weight: 600; line-height: 1.55;
+      color: var(--text); min-height: 58px;
+    }
+
+    .dist-row {
+      display: flex; align-items: center; gap: 14px;
+      margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border);
+    }
+    .dist-icon { font-size: 26px; }
+    .dist-info { flex: 1; }
+    .dist-label { font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+    #distance-text { font-family: 'Space Mono', monospace; font-size: 28px; color: var(--accent); font-weight: 700; }
+
+    .progress-wrap { margin-top: 18px; }
+    .progress-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+    .progress-track { background: var(--surface); border-radius: 4px; height: 6px; overflow: hidden; }
+    #progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 4px; width: 0%; transition: width 0.5s ease;
+    }
+
+    #arrived-box { display: none; text-align: center; padding: 10px 0; }
+    .arrived-icon { font-size: 54px; margin-bottom: 12px; animation: bounce 0.6s ease; }
+    @keyframes bounce { 0%{transform:scale(0.5);opacity:0} 70%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
+    #arrived-box h2 { font-size: 22px; color: var(--accent2); margin-bottom: 6px; }
+    #arrived-box p  { font-size: 14px; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-row">
+      <div class="logo-icon">🧭</div>
+      <h1>CAMPUS NAV</h1>
+    </div>
+    <p class="subtitle">Accessible Navigation · SJCE</p>
+  </header>
+
+  <div id="gps-bar" role="status" aria-live="polite">
+    <div class="gps-dot waiting" id="gps-dot"></div>
+    <span id="gps-text">Requesting GPS permission...</span>
+  </div>
+
+  <!-- SETUP CARD -->
+  <div class="card" id="setup-card">
+    <div class="card-label">⚙ Navigation Setup</div>
+
+    <div class="voice-row">
+      <div class="voice-label"><span>🔊</span><span>Voice Guidance</span></div>
+      <label class="toggle">
+        <input type="checkbox" id="voice-toggle" checked />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="field">
+      <label for="start-select">📍 Your Current Location</label>
+      <select id="start-select"><option value="">— Select starting point —</option></select>
+    </div>
+
+    <div class="field">
+      <label for="dest-select">🏁 Destination</label>
+      <select id="dest-select"><option value="">— Select destination —</option></select>
+    </div>
+
+    <button class="btn btn-primary" id="start-btn" onclick="startNavigation()" disabled>
+      <span>🚀</span> Start Navigation
+    </button>
+  </div>
+
+  <!-- NAV CARD -->
+  <div class="card" id="nav-card" style="display:none;">
+    <div class="card-label">🗺 Live Navigation</div>
+
+    <div id="instruction-box">
+      <div class="step-badge" id="step-badge">STEP 1</div>
+      <div id="instruction-text" aria-live="assertive">Acquiring GPS signal...</div>
+
+      <div class="dist-row">
+        <div class="dist-icon">📏</div>
+        <div class="dist-info">
+          <div class="dist-label">Distance to next point</div>
+          <div id="distance-text">— m</div>
+        </div>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-meta">
+          <span>Route progress</span>
+          <span id="step-counter">0 / 0 steps</span>
+        </div>
+        <div class="progress-track"><div id="progress-fill"></div></div>
+      </div>
+    </div>
+
+    <div id="arrived-box">
+      <div class="arrived-icon">✅</div>
+      <h2>You have arrived!</h2>
+      <p id="arrived-name">Destination reached.</p>
+    </div>
+
+    <button class="btn btn-stop" id="stop-btn" onclick="stopNavigation()">✕ Stop Navigation</button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
