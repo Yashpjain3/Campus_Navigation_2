@@ -9,7 +9,7 @@
 /* ------------------------------------------------------------------ */
 
 const CAMPUS_NODES = {
-  "loc_001":{"name":"Admin Block","lat":12.313181652566172,"lng":76.6136500185201},
+  "loc_001":{"name":"Admin Block","lat":12.313145671732428,"lng":76.61363978851972},
   "loc_002":{"name":"Chemistry Department","lat":12.314014207480326,"lng":76.61368252764498},
   "loc_003":{"name":"Environment Department","lat":12.314687880254084,"lng":76.61341994021609},
   "loc_004":{"name":"Polymer Science Department","lat":12.315299754396065,"lng":76.61354313249961},
@@ -35,7 +35,7 @@ const CAMPUS_NODES = {
   "loc_024":{"name":"Dean Office Circle","lat":12.313018964956285,"lng":76.61392597878137},
   "loc_025":{"name":"Basketball Court","lat":12.312696986912485,"lng":76.61422199865103},
   "loc_026":{"name":"Gymnasium","lat":12.312167826400568,"lng":76.6142756159552},
-  "loc_027":{"name":"Chemistry Circle","lat":12.31434634083405,"lng":76.61364752363198},
+  "loc_027":{"name":"Chemistry Circle","lat":12.314353981650783,"lng":76.61364762703806},
   "loc_028":{"name":"Department of Civil Engineering","lat":12.314320658153463,"lng":76.61331231625559},
   "loc_029":{"name":"Department of Biotechnology","lat":12.314754304519028,"lng":76.61267958318854}
 };
