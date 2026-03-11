@@ -9,35 +9,35 @@
 /* ------------------------------------------------------------------ */
 
 const CAMPUS_NODES = {
-  "loc_001":{"name":"Admin Block","lat":12.313179,"lng":76.613621},
-  "loc_002":{"name":"Chemistry Department","lat":12.314043,"lng":76.613671},
-  "loc_003":{"name":"Environment Department","lat":12.314715,"lng":76.613324},
-  "loc_004":{"name":"Polymer Science Department","lat":12.315276,"lng":76.613540},
-  "loc_005":{"name":"Golden Jubilee Block","lat":12.316302,"lng":76.613812},
-  "loc_006":{"name":"CMS Block","lat":12.317437,"lng":76.613652},
-  "loc_007":{"name":"PDA Block","lat":12.317498,"lng":76.613620},
-  "loc_008":{"name":"Rubber Institute","lat":12.315459,"lng":76.612111},
-  "loc_009":{"name":"Mechanical Auditorium","lat":12.314248,"lng":76.612735},
-  "loc_010":{"name":"Mechanical Department","lat":12.313748,"lng":76.612795},
-  "loc_011":{"name":"Electrical and Electronics Department","lat":12.313156,"lng":76.612834},
-  "loc_012":{"name":"Ganesha Temple","lat":12.312990,"lng":76.612878},
-  "loc_013":{"name":"Pot Circle","lat":12.313071,"lng":76.614117},
-  "loc_014":{"name":"Department of Physical Training","lat":12.312281,"lng":76.613875},
-  "loc_015":{"name":"Boys Hostel","lat":12.311515,"lng":76.613404},
-  "loc_016":{"name":"Entrance Gate","lat":12.313092,"lng":76.615176},
-  "loc_017":{"name":"Polytechnic For Women","lat":12.318428,"lng":76.614015},
-  "loc_018":{"name":"SJCE Women Hostel","lat":12.318334,"lng":76.612050},
-  "loc_019":{"name":"Exit Gate","lat":12.318439,"lng":76.614723},
-  "loc_020":{"name":"Circle Towards Exit","lat":12.318372,"lng":76.613526},
-  "loc_021":{"name":"CS Lawn Circle","lat":12.315585,"lng":76.613664},
-  "loc_022":{"name":"Hockey Ground","lat":12.313941,"lng":76.614032},
-  "loc_023":{"name":"Football Ground","lat":12.314855,"lng":76.613971},
-  "loc_024":{"name":"Dean Office Circle","lat":12.313103,"lng":76.613772},
-  "loc_025":{"name":"Basketball Court","lat":12.312622,"lng":76.614176},
-  "loc_026":{"name":"Gymnasium","lat":12.312197,"lng":76.614209},
-  "loc_027":{"name":"Chemistry Circle","lat":12.314390,"lng":76.613645},
-  "loc_028":{"name":"Department of Civil Engineering","lat":12.314295,"lng":76.613048},
-  "loc_029":{"name":"Department of Biotechnology","lat":12.314852,"lng":76.612652}
+  "loc_001":{"name":"Admin Block","lat":12.313181652566172,"lng":76.6136500185201},
+  "loc_002":{"name":"Chemistry Department","lat":12.314014207480326,"lng":76.61368252764498},
+  "loc_003":{"name":"Environment Department","lat":12.314684939253254,"lng":76.61341817683558},
+  "loc_004":{"name":"Polymer Science Department","lat":12.315299754396065,"lng":76.61355401991744},
+  "loc_005":{"name":"Golden Jubilee Block","lat":12.316367938062982,"lng":76.61376993999346},
+  "loc_006":{"name":"CMS Block","lat":12.317764379619717,"lng":76.61394874381392},
+  "loc_007":{"name":"PDA Block","lat":12.317469248574866,"lng":76.61339200845174},
+  "loc_008":{"name":"Rubber Institute","lat":12.315482653888253,"lng":76.61205642785677},
+  "loc_009":{"name":"Mechanical Auditorium","lat":12.314265999124345,"lng":76.6127416031224},
+  "loc_010":{"name":"Mechanical Department","lat":12.313944784987072,"lng":76.61277650490251},
+  "loc_011":{"name":"Electrical and Electronics Department","lat":12.313167959764712,"lng":76.61283362022158},
+  "loc_012":{"name":"Ganesha Temple","lat":12.312978131420465,"lng":76.6128603005481},
+  "loc_013":{"name":"Pot Circle","lat":12.313031367737949,"lng":76.61419057219899},
+  "loc_014":{"name":"Department of Physical Training","lat":12.312303099811686,"lng":76.61387392725118},
+  "loc_015":{"name":"Boys Hostel","lat":12.31254368461778,"lng":76.61388169523116},
+  "loc_016":{"name":"Entrance Gate","lat":12.313123610989763,"lng":76.61521067151989},
+  "loc_017":{"name":"Polytechnic For Women","lat":12.31843726916479,"lng":76.61406290814398},
+  "loc_018":{"name":"SJCE Women Hostel","lat":12.318612332381718,"lng":76.61128538304763},
+  "loc_019":{"name":"Exit Gate","lat":12.318467376926534,"lng":76.6146825207772},
+  "loc_020":{"name":"Circle Towards Exit","lat":12.318400436116079,"lng":76.61353715159908},
+  "loc_021":{"name":"CS Lawn Circle","lat":12.315594219258813,"lng":76.61366076686653},
+  "loc_022":{"name":"Hockey Ground","lat":12.313702611648196,"lng":76.61410073906313},
+  "loc_023":{"name":"Football Ground","lat":12.314804874459838,"lng":76.61397070836091},
+  "loc_024":{"name":"Dean Office Circle","lat":12.313022605925454,"lng":76.6139256808354},
+  "loc_025":{"name":"Basketball Court","lat":12.312696986912485,"lng":76.61422199865103},
+  "loc_026":{"name":"Gymnasium","lat":12.312167826400568,"lng":76.6142756159552},
+  "loc_027":{"name":"Chemistry Circle","lat":12.31434634083405,"lng":76.61364752363198},
+  "loc_028":{"name":"Department of Civil Engineering","lat":12.314320658153463,"lng":76.61331231625559},
+  "loc_029":{"name":"Department of Biotechnology","lat":12.314756265263256,"lng":76.61267626339804}
 };
 
 /* ------------------------------------------------------------------ */
@@ -77,7 +77,7 @@ let userCentered   = true;   // auto-pan flag
 function initMap() {
   // Centre on SJCE campus
   map = L.map("map", {
-    center: [12.3148, 76.6134],
+    center: [12.3148, 76.6137],
     zoom: 17,
     zoomControl: true,
     attributionControl: false
