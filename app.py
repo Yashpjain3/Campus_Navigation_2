@@ -27,8 +27,22 @@ for start, dests in campus_data["paths"].items():
     s = start.strip()
     for end, waypoints in dests.items():
         e = end.strip()
-        # waypoints = list of [lat,lng] points along the real road
-        G.add_edge(s, e, waypoints=waypoints)
+        # Calculate real-world distance for weighted shortest path
+        sloc = campus_data["locations"].get(s, {})
+        eloc = campus_data["locations"].get(e, {})
+        # Use actual road length if waypoints available, else straight-line
+        if waypoints and len(waypoints) >= 2:
+            dist = sum(
+                haversine(waypoints[i][0], waypoints[i][1],
+                          waypoints[i+1][0], waypoints[i+1][1])
+                for i in range(len(waypoints) - 1)
+            )
+        else:
+            dist = haversine(
+                sloc.get("lat",0), sloc.get("lng",0),
+                eloc.get("lat",0), eloc.get("lng",0)
+            )
+        G.add_edge(s, e, waypoints=waypoints, weight=dist)
         graph_nodes.add(s)
         graph_nodes.add(e)
 
@@ -154,7 +168,7 @@ def start_navigation():
     dest  = data["destination"].strip()
     print(f"[NAV] {start} → {dest}")
     try:
-        path = list(nx.shortest_path(G, start, dest))
+        path = list(nx.shortest_path(G, start, dest, weight='weight'))
     except nx.NetworkXNoPath:
         return jsonify({"error": "No path found between these locations."})
     except nx.NodeNotFound as e:
