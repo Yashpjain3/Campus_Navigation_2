@@ -58,6 +58,38 @@ let spokenMilestones = new Set();
 let lastLat     = null;
 let lastLng     = null;
 let userHeading = -1;
+let compassHeading = -1;  // from device orientation sensor
+
+// Use phone compass if available (works even when standing still)
+function startCompass() {
+  if (typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof DeviceOrientationEvent.requestPermission === 'function') {
+    // iOS 13+ requires permission
+    DeviceOrientationEvent.requestPermission().then(state => {
+      if (state === 'granted') listenOrientation();
+    }).catch(() => {});
+  } else {
+    listenOrientation();
+  }
+}
+
+function listenOrientation() {
+  window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+  window.addEventListener('deviceorientation', handleOrientation, true);
+}
+
+function handleOrientation(e) {
+  let heading = null;
+  if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null) {
+    heading = e.webkitCompassHeading;           // iOS
+  } else if (e.absolute && e.alpha !== null) {
+    heading = (360 - e.alpha) % 360;            // Android absolute
+  }
+  if (heading !== null && !isNaN(heading)) {
+    compassHeading = heading;
+    userHeading = heading;  // prefer compass over GPS movement heading
+  }
+}
 
 // Full route node IDs for map drawing
 let routeNodeIds  = [];
@@ -544,6 +576,7 @@ async function startNavigation() {
     setGpsStatus("waiting","Acquiring GPS signal...");
 
     watchId = navigator.geolocation.watchPosition(sendLocation, gpsError, { enableHighAccuracy:true, maximumAge:0, timeout:30000 });
+    startCompass();  // start phone compass for accurate heading
   } catch(e) {
     setGpsStatus("error","Server connection failed."); speak("Could not connect to server.");
     document.getElementById("start-btn").disabled = false;
@@ -558,10 +591,10 @@ async function sendLocation(position) {
   const lat = position.coords.latitude;
   const lng = position.coords.longitude;
 
-  // Update heading from movement
+  // Update heading from movement only if compass not available
   if (lastLat !== null && lastLng !== null) {
     const dist = Math.sqrt(Math.pow((lat-lastLat)*111000,2)+Math.pow((lng-lastLng)*111000*Math.cos(lat*Math.PI/180),2));
-    if (dist > 3) userHeading = computeHeading(lastLat, lastLng, lat, lng);
+    if (dist > 3 && compassHeading < 0) userHeading = computeHeading(lastLat, lastLng, lat, lng);
   }
   lastLat = lat; lastLng = lng;
 
@@ -649,7 +682,7 @@ function showArrived() {
 
 function stopNavigation() {
   if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
-  session_id = null; lastInstruction = ""; userHeading = -1; lastLat = null; lastLng = null;
+  session_id = null; lastInstruction = ""; userHeading = -1; compassHeading = -1; lastLat = null; lastLng = null;
   lastSpokenStep = -1; spokenMilestones = new Set(); routeNodeIds = [];
 
   // Clear map overlays
