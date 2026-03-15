@@ -94,12 +94,12 @@ def bearing(lat1, lon1, lat2, lon2):
 
 def relative_direction(user_heading, target_bearing):
     diff = (target_bearing - user_heading + 360) % 360
-    if diff < 20 or diff > 340:       return "straight"
-    elif 20  <= diff < 70:            return "slight right"
-    elif 70  <= diff < 120:           return "right"
-    elif 120 <= diff <= 180:          return "sharp right"
-    elif 180 < diff <= 240:           return "sharp left"
-    elif 240 < diff < 290:            return "left"
+    if diff < 25 or diff > 335:       return "straight"
+    elif 25  <= diff < 65:            return "slight right"
+    elif 65  <= diff < 115:           return "right"
+    elif 115 <= diff <= 180:          return "sharp right"
+    elif 180 < diff <= 245:           return "sharp left"
+    elif 245 < diff < 295:            return "left"
     else:                             return "slight left"
 
 def smart_distance(meters):
@@ -108,33 +108,29 @@ def smart_distance(meters):
     elif m < 50: return f"{m} meters"
     else:        return f"about {round(m/5)*5} meters"
 
-def compass_direction(bear):
-    dirs = ["north","north-east","east","south-east","south","south-west","west","north-west"]
-    return dirs[round(bear / 45) % 8]
-
-def build_instruction(user_heading, target_bear, next_name, distance_m,
-                      prev_lat=None, prev_lng=None, curr_lat=None, curr_lng=None):
+def build_instruction(user_heading, road_bear, next_name, distance_m):
+    """
+    user_heading: where the phone is facing (degrees, -1 if unknown)
+    road_bear:    the bearing of the road segment we need to walk along
+    """
     dist_str = smart_distance(distance_m)
 
-    if user_heading >= 0:
-        direction = relative_direction(user_heading, target_bear)
-    elif prev_lat is not None and curr_lat is not None:
-        inferred  = bearing(prev_lat, prev_lng, curr_lat, curr_lng)
-        direction = relative_direction(inferred, target_bear)
-    else:
-        compass = compass_direction(target_bear)
-        return f"Head {compass} for {dist_str} to reach {next_name}."
+    if user_heading < 0:
+        # No heading — just tell distance, no turn word
+        return f"Walk {dist_str} towards {next_name}."
+
+    direction = relative_direction(user_heading, road_bear)
 
     phrases = {
-        "straight":    f"Continue straight for {dist_str} to reach {next_name}.",
-        "slight right":f"Bear slightly right and walk {dist_str} to {next_name}.",
-        "right":       f"Turn right and walk {dist_str} to {next_name}.",
-        "sharp right": f"Take a sharp right and walk {dist_str} to {next_name}.",
-        "slight left": f"Bear slightly left and walk {dist_str} to {next_name}.",
-        "left":        f"Turn left and walk {dist_str} to {next_name}.",
-        "sharp left":  f"Take a sharp left and walk {dist_str} to {next_name}.",
+        "straight":     f"Go straight for {dist_str} towards {next_name}.",
+        "slight right": f"Keep slightly right for {dist_str} towards {next_name}.",
+        "right":        f"Turn right and walk {dist_str} to {next_name}.",
+        "sharp right":  f"Take a sharp right and walk {dist_str} to {next_name}.",
+        "slight left":  f"Keep slightly left for {dist_str} towards {next_name}.",
+        "left":         f"Turn left and walk {dist_str} to {next_name}.",
+        "sharp left":   f"Take a sharp left and walk {dist_str} to {next_name}.",
     }
-    return phrases.get(direction, f"Walk {dist_str} to reach {next_name}.")
+    return phrases.get(direction, f"Walk {dist_str} towards {next_name}.")
 
 # ─────────────────────────────────────────────
 # API Endpoints
@@ -177,16 +173,27 @@ def start_navigation():
         return jsonify({"error": "No path found between these locations."})
     except nx.NodeNotFound as e:
         return jsonify({"error": f"Location not found: {str(e)}"})
-    sid = str(uuid.uuid4())
-    with session_lock:
-        active_users[sid] = {"route": path, "step": 0,
-                             "last_active": time.time(), "last_step_time": 0}
-    # Build road geometry for the client to draw accurate route lines
+    # Build road geometry and precompute road bearings per step
     road_geometry = []
+    road_bearings = []
     for i in range(len(path) - 1):
         edge_data = G.get_edge_data(path[i], path[i+1]) or {}
         wps = edge_data.get("waypoints", [])
-        road_geometry.append(wps)  # empty list = draw straight line
+        road_geometry.append(wps)
+        # Road bearing = actual direction of the road segment (not GPS-to-node)
+        if wps and len(wps) >= 2:
+            rb = bearing(wps[0][0], wps[0][1], wps[1][0], wps[1][1])
+        else:
+            a_loc = campus_data["locations"][path[i]]
+            b_loc = campus_data["locations"][path[i+1]]
+            rb = bearing(a_loc["lat"], a_loc["lng"], b_loc["lat"], b_loc["lng"])
+        road_bearings.append(rb)
+
+    sid = str(uuid.uuid4())
+    with session_lock:
+        active_users[sid] = {"route": path, "step": 0,
+                             "last_active": time.time(), "last_step_time": 0,
+                             "road_bearings": road_bearings}
 
     return jsonify({
         "session_id":    sid,
@@ -218,19 +225,25 @@ def update_location():
     next_name = next_loc["name"].strip()
 
     dist = haversine(lat, lng, next_loc["lat"], next_loc["lng"])
-    bear = bearing(lat, lng, next_loc["lat"], next_loc["lng"])
 
-    # Previous waypoint coords for fallback heading inference
-    prev_lat = prev_lng = None
-    if step > 0:
-        p = campus_data["locations"].get(route[step - 1], {})
-        prev_lat, prev_lng = p.get("lat"), p.get("lng")
+    # Use road segment bearing (direction the road actually goes)
+    # NOT bearing from GPS position to node (which is often diagonal/wrong)
+    with session_lock:
+        u = active_users.get(sid)
+        road_bearings = u.get("road_bearings", []) if u else []
+
+    if step < len(road_bearings):
+        road_bear = road_bearings[step]
+    else:
+        # Fallback: node-to-node bearing
+        curr_loc = campus_data["locations"][current]
+        road_bear = bearing(curr_loc["lat"], curr_loc["lng"],
+                            next_loc["lat"], next_loc["lng"])
 
     instruction = build_instruction(
-        user_heading, bear, next_name, dist,
-        prev_lat=prev_lat, prev_lng=prev_lng,
-        curr_lat=lat, curr_lng=lng
+        user_heading, road_bear, next_name, dist
     )
+    bear = road_bear  # for target_bearing in response
 
     # Advance step when within 15m and at least 8s since last advance
     if dist < 15:
