@@ -173,27 +173,65 @@ def start_navigation():
         return jsonify({"error": "No path found between these locations."})
     except nx.NodeNotFound as e:
         return jsonify({"error": f"Location not found: {str(e)}"})
-    # Build road geometry and precompute road bearings per step
+    # Build road geometry for map display
     road_geometry = []
-    road_bearings = []
     for i in range(len(path) - 1):
         edge_data = G.get_edge_data(path[i], path[i+1]) or {}
         wps = edge_data.get("waypoints", [])
         road_geometry.append(wps)
-        # Road bearing = actual direction of the road segment (not GPS-to-node)
-        if wps and len(wps) >= 2:
-            rb = bearing(wps[0][0], wps[0][1], wps[1][0], wps[1][1])
-        else:
-            a_loc = campus_data["locations"][path[i]]
-            b_loc = campus_data["locations"][path[i+1]]
-            rb = bearing(a_loc["lat"], a_loc["lng"], b_loc["lat"], b_loc["lng"])
-        road_bearings.append(rb)
+
+    # Flatten ALL waypoints into one sequence with turn annotations.
+    # Uses actual road geometry — not node-to-node bearings.
+    TURN_THRESHOLD = 30   # degrees change that counts as a turn
+    flat_wps = []
+
+    for i in range(len(path) - 1):
+        edge_data = G.get_edge_data(path[i], path[i+1]) or {}
+        wps = edge_data.get("waypoints", [])
+        node_name = campus_data["locations"][path[i+1]]["name"].strip()
+
+        if not wps:
+            a = campus_data["locations"][path[i]]
+            b = campus_data["locations"][path[i+1]]
+            wps = [[a["lat"], a["lng"]], [b["lat"], b["lng"]]]
+
+        for j in range(len(wps) - 1):
+            pt       = wps[j]
+            pt_next  = wps[j + 1]
+            bear_now = bearing(pt[0], pt[1], pt_next[0], pt_next[1])
+            if flat_wps:
+                diff     = (bear_now - flat_wps[-1]["bearing"] + 360) % 360
+                is_turn  = not (diff < TURN_THRESHOLD or diff > 360 - TURN_THRESHOLD)
+            else:
+                diff, is_turn = 0, False
+            flat_wps.append({
+                "lat": pt[0], "lng": pt[1],
+                "bearing": bear_now,
+                "is_turn": is_turn,
+                "diff": diff,
+                "node_idx": i,
+                "next_node_name": node_name
+            })
+
+    dest_loc = campus_data["locations"][path[-1]]
+    flat_wps.append({
+        "lat": dest_loc["lat"], "lng": dest_loc["lng"],
+        "bearing": flat_wps[-1]["bearing"] if flat_wps else 0,
+        "is_turn": False, "diff": 0,
+        "node_idx": len(path) - 1,
+        "next_node_name": dest_loc["name"].strip()
+    })
 
     sid = str(uuid.uuid4())
     with session_lock:
-        active_users[sid] = {"route": path, "step": 0,
-                             "last_active": time.time(), "last_step_time": 0,
-                             "road_bearings": road_bearings}
+        active_users[sid] = {
+            "route":           path,
+            "step":            0,
+            "wp_idx":          0,
+            "flat_wps":        flat_wps,
+            "last_active":     time.time(),
+            "last_step_time":  0
+        }
 
     return jsonify({
         "session_id":    sid,
@@ -212,55 +250,66 @@ def update_location():
     with session_lock:
         user = active_users.get(sid)
         if not user: return jsonify({"error": "Invalid or expired session."})
-        route = user["route"]
-        step  = user["step"]
+        flat_wps  = user["flat_wps"]
+        wp_idx    = user["wp_idx"]
+        step      = user["step"]
+        route     = user["route"]
         user["last_active"] = time.time()
 
     if step >= len(route) - 1:
         return jsonify({"instruction": "Navigation complete.", "step": step})
 
-    current   = route[step]
-    next_node = route[step + 1]
-    next_loc  = campus_data["locations"][next_node]
-    next_name = next_loc["name"].strip()
+    # ── Advance wp_idx to closest upcoming waypoint ───────────────────
+    # Skip any waypoints the user has already passed (within 12m)
+    while wp_idx < len(flat_wps) - 1:
+        wp = flat_wps[wp_idx]
+        d_to_wp = haversine(lat, lng, wp["lat"], wp["lng"])
+        if d_to_wp < 12:
+            wp_idx += 1
+        else:
+            break
 
-    dist = haversine(lat, lng, next_loc["lat"], next_loc["lng"])
-
-    # Use road segment bearing (direction the road actually goes)
-    # NOT bearing from GPS position to node (which is often diagonal/wrong)
     with session_lock:
         u = active_users.get(sid)
-        road_bearings = u.get("road_bearings", []) if u else []
+        if u:
+            u["wp_idx"] = wp_idx
 
-    if step < len(road_bearings):
-        road_bear = road_bearings[step]
-    else:
-        # Fallback: node-to-node bearing
-        curr_loc = campus_data["locations"][current]
-        road_bear = bearing(curr_loc["lat"], curr_loc["lng"],
-                            next_loc["lat"], next_loc["lng"])
+    # ── Current target waypoint ───────────────────────────────────────
+    wp      = flat_wps[wp_idx]
+    dist    = haversine(lat, lng, wp["lat"], wp["lng"])
+    road_bear = wp["bearing"]
 
-    instruction = build_instruction(
-        user_heading, road_bear, next_name, dist
-    )
-    bear = road_bear  # for target_bearing in response
+    # ── Advance node step when entering a new node area ───────────────
+    final_loc = campus_data["locations"][route[-1]]
+    dist_to_dest = haversine(lat, lng, final_loc["lat"], final_loc["lng"])
 
-    # Advance step when within 15m and at least 8s since last advance
-    if dist < 15:
+    new_step = wp["node_idx"]
+    if new_step != step:
         with session_lock:
             u = active_users.get(sid)
-            if u and time.time() - u.get("last_step_time", 0) > 8:
-                u["step"] += 1
+            if u and time.time() - u.get("last_step_time", 0) > 5:
+                u["step"] = new_step
                 u["last_step_time"] = time.time()
-                step = u["step"]
+                step = new_step
+
+    # ── Build instruction ─────────────────────────────────────────────
+    next_node_name = wp["next_node_name"]
+
+    # Distance to next NODE (for display), not just next waypoint
+    next_node_loc = campus_data["locations"][route[min(step + 1, len(route)-1)]]
+    dist_to_node  = haversine(lat, lng, next_node_loc["lat"], next_node_loc["lng"])
+
+    instruction = build_instruction(user_heading, road_bear, next_node_name, dist_to_node)
+
+    arrived = dist_to_dest < 15
 
     return jsonify({
         "instruction":    instruction,
-        "distance":       round(dist, 1),
+        "distance":       round(dist_to_node, 1),
         "step":           step,
-        "arrived":        dist < 15,
-        "target_bearing": round(bear, 1),
-        "next_location":  next_name
+        "arrived":        arrived,
+        "target_bearing": round(road_bear, 1),
+        "next_location":  next_node_name
     })
 
 @app.route("/debug", methods=["GET"])
