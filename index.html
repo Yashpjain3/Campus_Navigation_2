@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Campus Navigator</title>
 
+  <!-- jsQR for QR scanning -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
   <!-- Fonts -->
@@ -194,6 +196,30 @@
       border-radius:10px; font-family:'Sora',sans-serif; font-size:13px;
     }
     .leaflet-popup-tip { background:#1a2235; }
+
+    /* ── QR SCANNER ─────────────────────────────────────── */
+    #qr-card { display:none; }
+    #qr-overlay { position:fixed; top:0; left:0; width:100%; height:100%;
+                  background:#000; z-index:5000; display:none; flex-direction:column;
+                  align-items:center; justify-content:center; }
+    #qr-overlay.show { display:flex; }
+    #qr-video { width:100%; max-width:480px; border-radius:12px; }
+    #qr-canvas { display:none; }
+    #qr-frame { position:relative; width:100%; max-width:480px; }
+    #qr-guide { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+                width:220px; height:220px; border:3px solid var(--accent);
+                border-radius:12px; box-shadow:0 0 0 9999px rgba(0,0,0,0.5); }
+    #qr-corner { position:absolute; inset:0; pointer-events:none; }
+    #qr-status { margin-top:20px; color:var(--text); font-size:16px; text-align:center;
+                 padding:0 20px; min-height:48px; font-weight:600; }
+    #qr-hint   { color:var(--muted); font-size:13px; text-align:center; margin-top:8px; padding:0 20px; }
+    #qr-close  { margin-top:24px; background:var(--danger); color:#fff; border:none;
+                 padding:14px 40px; border-radius:50px; font-size:16px; cursor:pointer; }
+    #qr-indicator { width:80px; height:6px; background:var(--border); border-radius:3px;
+                    margin-top:16px; overflow:hidden; }
+    #qr-indicator-bar { height:100%; width:0%; background:var(--accent);
+                        border-radius:3px; transition:width 0.3s; }
+
   </style>
 </head>
 <body>
@@ -274,6 +300,10 @@
           📍 Use My Current Location
         </button>
 
+        <button class="gps-locate-btn" id="qr-scan-btn" onclick="openQRScanner()" style="background:linear-gradient(135deg,#7b2ff7,#00d4ff); margin-top:4px;">
+          📷 Scan QR Code to Set Location
+        </button>
+
         <div class="or-divider">or select manually</div>
 
         <div class="field">
@@ -308,6 +338,20 @@
       </div>
 
     </div>
+  </div>
+
+  <!-- QR Scanner Overlay -->
+  <div id="qr-overlay">
+    <div style="color:var(--accent);font-size:20px;font-weight:700;margin-bottom:16px;">📷 QR Code Scanner</div>
+    <div id="qr-frame">
+      <video id="qr-video" playsinline autoplay muted></video>
+      <div id="qr-guide"></div>
+    </div>
+    <canvas id="qr-canvas"></canvas>
+    <div id="qr-indicator"><div id="qr-indicator-bar"></div></div>
+    <div id="qr-status">Initializing camera...</div>
+    <div id="qr-hint">Hold phone steady and point camera at QR code</div>
+    <button id="qr-close" onclick="closeQRScanner()">✕ Close Scanner</button>
   </div>
 
   <!-- Leaflet JS -->
