@@ -727,3 +727,232 @@ function gpsError(error) {
   const msg = msgs[error.code]||"Unknown GPS error.";
   setGpsStatus("error",msg); speak(msg);
 }
+
+/* ================================================================== */
+/*  QR CODE SCANNER                                                    */
+/* ================================================================== */
+
+let qrStream       = null;   // camera stream
+let qrAnimFrame    = null;   // requestAnimationFrame id
+let qrScanning     = false;
+let qrLastSpoken   = "";     // avoid repeating same instruction
+let qrSpeakTimer   = null;
+
+// ── OPEN SCANNER ──────────────────────────────────────────────────────
+async function openQRScanner() {
+  const overlay = document.getElementById("qr-overlay");
+  overlay.classList.add("show");
+  qrScanning = true;
+  setQRStatus("Initializing camera...", "");
+  speak("QR scanner open. Point your camera at a QR code. I will guide you.");
+
+  try {
+    qrStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    const video = document.getElementById("qr-video");
+    video.srcObject = qrStream;
+    video.play();
+    video.addEventListener("loadedmetadata", () => {
+      setQRStatus("Camera ready. Looking for QR code...", "Move phone slowly to find the code");
+      speak("Camera ready. Move your phone slowly and I will tell you where to go.");
+      requestAnimationFrame(scanQRFrame);
+    });
+  } catch(e) {
+    setQRStatus("Camera access denied.", "Please allow camera in browser settings");
+    speak("Camera access denied. Please allow camera permission and try again.");
+  }
+}
+
+// ── CLOSE SCANNER ─────────────────────────────────────────────────────
+function closeQRScanner() {
+  qrScanning = false;
+  if (qrAnimFrame) { cancelAnimationFrame(qrAnimFrame); qrAnimFrame = null; }
+  if (qrStream) { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
+  document.getElementById("qr-overlay").classList.remove("show");
+  document.getElementById("qr-indicator-bar").style.width = "0%";
+  speak("Scanner closed.");
+}
+
+// ── SCAN LOOP ─────────────────────────────────────────────────────────
+function scanQRFrame() {
+  if (!qrScanning) return;
+  const video  = document.getElementById("qr-video");
+  const canvas = document.getElementById("qr-canvas");
+  if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+    qrAnimFrame = requestAnimationFrame(scanQRFrame);
+    return;
+  }
+
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const code = jsQR(imageData.data, imageData.width, imageData.height, {
+    inversionAttempts: "dontInvert"
+  });
+
+  if (code) {
+    onQRDetected(code);
+  } else {
+    guideCamera(video);
+    qrAnimFrame = requestAnimationFrame(scanQRFrame);
+  }
+}
+
+// ── GUIDE CAMERA (no QR found yet) ───────────────────────────────────
+let qrGuideStep = 0;
+const QR_GUIDE_MSGS = [
+  "Move the phone slowly up and down.",
+  "Try tilting the camera slightly forward.",
+  "Move the phone closer to the QR code.",
+  "Move the phone to the left.",
+  "Move the phone to the right.",
+  "Move the phone back a little.",
+  "Make sure there is enough light.",
+  "Hold the phone steady and scan slowly.",
+];
+
+let qrGuideInterval = null;
+function startGuideLoop() {
+  if (qrGuideInterval) return;
+  qrGuideInterval = setInterval(() => {
+    if (!qrScanning) { clearInterval(qrGuideInterval); qrGuideInterval = null; return; }
+    const msg = QR_GUIDE_MSGS[qrGuideStep % QR_GUIDE_MSGS.length];
+    qrGuideStep++;
+    speakQR(msg);
+    setQRStatus("Searching for QR code...", msg);
+  }, 4500);
+}
+
+function guideCamera(video) {
+  startGuideLoop();
+}
+
+// ── QR DETECTED ───────────────────────────────────────────────────────
+async function onQRDetected(code) {
+  qrScanning = false;
+  if (qrGuideInterval) { clearInterval(qrGuideInterval); qrGuideInterval = null; }
+  if (qrAnimFrame)     { cancelAnimationFrame(qrAnimFrame); qrAnimFrame = null; }
+
+  // Check QR position in frame — give user centering guidance
+  const video   = document.getElementById("qr-video");
+  const vW = video.videoWidth, vH = video.videoHeight;
+  const loc = code.location;
+  const cx = (loc.topLeftCorner.x + loc.bottomRightCorner.x) / 2;
+  const cy = (loc.topLeftCorner.y + loc.bottomRightCorner.y) / 2;
+  const qrW = Math.abs(loc.bottomRightCorner.x - loc.topLeftCorner.x);
+  const qrH = Math.abs(loc.bottomRightCorner.y - loc.topLeftCorner.y);
+
+  // Position feedback
+  let posMsg = "";
+  const offX = cx - vW / 2;
+  const offY = cy - vH / 2;
+  const tooSmall = qrW < vW * 0.15;
+  const tooBig   = qrW > vW * 0.7;
+
+  if (tooSmall) posMsg = "Move closer to the QR code.";
+  else if (tooBig) posMsg = "Move back a little from the QR code.";
+  else if (Math.abs(offX) > vW * 0.25) posMsg = offX > 0 ? "Move the phone to the left." : "Move the phone to the right.";
+  else if (Math.abs(offY) > vH * 0.25) posMsg = offY > 0 ? "Move the phone up." : "Move the phone down.";
+
+  document.getElementById("qr-indicator-bar").style.width = "100%";
+
+  if (posMsg) {
+    setQRStatus("QR code found! Adjusting...", posMsg);
+    speakQR("QR code detected. " + posMsg);
+    await delay(2000);
+    qrScanning = true;
+    qrAnimFrame = requestAnimationFrame(scanQRFrame);
+    return;
+  }
+
+  // QR is well-centered — read the data
+  const qrData = code.data.trim();
+  setQRStatus("✅ QR Code scanned!", qrData);
+  speak("QR code scanned successfully.");
+
+  // Try to match QR data to a location
+  await delay(600);
+  closeQRScanner();
+  await handleQRLocation(qrData);
+}
+
+// ── MATCH QR DATA TO LOCATION ─────────────────────────────────────────
+async function handleQRLocation(qrData) {
+  // QR code should contain a location ID (e.g. "loc_001") or location name
+  const locations = await fetchLocations();
+  if (!locations) return;
+
+  let matched = null;
+
+  // Try exact ID match
+  if (locations[qrData]) {
+    matched = { id: qrData, name: locations[qrData] };
+  }
+
+  // Try name match (case-insensitive)
+  if (!matched) {
+    const lower = qrData.toLowerCase();
+    for (const [id, name] of Object.entries(locations)) {
+      if (name.toLowerCase().includes(lower) || lower.includes(name.toLowerCase())) {
+        matched = { id, name };
+        break;
+      }
+    }
+  }
+
+  if (matched) {
+    speak("You are at " + matched.name + ". Setting as your current location.");
+    // Set as start location in dropdown
+    const startSel = document.getElementById("start-select");
+    startSel.value = matched.id;
+    startSel.classList.add("voice-set");
+    document.getElementById("start-btn").disabled =
+      !document.getElementById("dest-select").value;
+    setGpsStatus("active", "Location set via QR: " + matched.name);
+
+    // Ask for destination
+    await delay(2500);
+    speak("Where would you like to go? Say the destination name or use the dropdown below.");
+  } else {
+    speak("QR code read: " + qrData + ". This location was not found in the campus map.");
+    setGpsStatus("error", "QR location not found: " + qrData);
+  }
+}
+
+// ── FETCH LOCATIONS ───────────────────────────────────────────────────
+async function fetchLocations() {
+  try {
+    const res = await fetch("/locations");
+    const data = await res.json();
+    const map = {};
+    data.forEach(loc => { map[loc.id] = loc.name; });
+    return map;
+  } catch(e) {
+    speak("Could not fetch campus locations.");
+    return null;
+  }
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────
+function setQRStatus(status, hint) {
+  const s = document.getElementById("qr-status");
+  const h = document.getElementById("qr-hint");
+  if (s) s.innerText = status;
+  if (h) h.innerText = hint || "";
+}
+
+function speakQR(msg) {
+  if (msg === qrLastSpoken) return;
+  qrLastSpoken = msg;
+  if (qrSpeakTimer) clearTimeout(qrSpeakTimer);
+  qrSpeakTimer = setTimeout(() => {
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(msg);
+    utt.rate = 0.95; utt.pitch = 1; utt.volume = 1;
+    window.speechSynthesis.speak(utt);
+    qrLastSpoken = "";
+  }, 300);
+}
