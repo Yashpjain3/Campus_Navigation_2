@@ -729,155 +729,174 @@ function gpsError(error) {
 }
 
 
+
 /* ================================================================== */
-/*  QR CODE SCANNER — Fixed version                                    */
+/*  QR CODE SCANNER  — uses native BarcodeDetector (Android Chrome)   */
+/*                     falls back to jsQR if not available            */
 /* ================================================================== */
 
-let qrStream    = null;
-let qrAnimFrame = null;
-let qrActive    = false;
-let qrLastGuide = 0;
-let qrGuideIdx  = 0;
+let qrStream     = null;
+let qrAnimFrame  = null;
+let qrActive     = false;
+let qrDetector   = null;   // BarcodeDetector instance
+let qrGuideIdx   = 0;
+let qrLastGuide  = 0;
+let qrScanCount  = 0;      // debug: how many frames scanned
 
 const QR_GUIDES = [
   "Move the phone closer to the QR code.",
-  "Move the phone slowly to the left.",
-  "Move the phone slowly to the right.",
-  "Move the phone up a little.",
-  "Move the phone down a little.",
-  "Try tilting the camera slightly forward.",
+  "Move the phone to the left.",
+  "Move the phone to the right.",
+  "Move the phone up.",
+  "Move the phone down.",
+  "Try tilting the camera slightly.",
   "Move the phone back a little.",
   "Make sure the QR code is well lit.",
-  "Hold the phone steady and scan slowly.",
-  "Try moving in a circular motion to find the code.",
 ];
 
 /* ── OPEN ─────────────────────────────────────────────────────────── */
 async function openQRScanner() {
   const overlay = document.getElementById("qr-overlay");
   overlay.classList.add("show");
-  qrActive = true;
-  qrGuideIdx = 0;
-  qrLastGuide = 0;
-  setQRStatus("Requesting camera...", "");
+  qrActive    = true;
+  qrGuideIdx  = 0;
+  qrLastGuide = Date.now();
+  qrScanCount = 0;
 
-  try {
-    // Use simple constraints — avoid high resolution that breaks on some phones
-    qrStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { exact: "environment" } }
-    });
-  } catch(e1) {
+  // Check what scanner is available
+  let method = "none";
+  if (typeof BarcodeDetector !== "undefined") {
     try {
-      // Fallback: any camera
+      const formats = await BarcodeDetector.getSupportedFormats();
+      if (formats.includes("qr_code")) {
+        qrDetector = new BarcodeDetector({ formats: ["qr_code"] });
+        method = "BarcodeDetector";
+      }
+    } catch(e) {}
+  }
+  if (method === "none" && typeof jsQR !== "undefined") {
+    method = "jsQR";
+  }
+
+  setQRStatus("📷 Starting camera...", "Method: " + method);
+
+  if (method === "none") {
+    setQRStatus("❌ No QR scanner available", "Please use Chrome on Android");
+    speak("QR scanning is not supported on this browser. Please use Chrome.");
+    return;
+  }
+
+  // Start camera
+  try {
+    qrStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" }
+    });
+  } catch(e) {
+    try {
       qrStream = await navigator.mediaDevices.getUserMedia({ video: true });
     } catch(e2) {
-      setQRStatus("❌ Camera denied", "Please allow camera access in your browser settings");
-      speak("Camera access denied. Please allow camera permission and try again.");
+      setQRStatus("❌ Camera denied", "Allow camera in browser settings");
+      speak("Camera access denied. Please allow camera and try again.");
       return;
     }
   }
 
   const video = document.getElementById("qr-video");
   video.srcObject = qrStream;
-  await video.play();
-
-  setQRStatus("📷 Scanning...", "Point at the QR code on the department door");
-  speak("Camera ready. Point your camera at the QR code. I will guide you.");
+  video.setAttribute("playsinline", true);
+  await video.play().catch(()=>{});
 
   document.getElementById("qr-indicator-bar").style.width = "0%";
-  qrAnimFrame = requestAnimationFrame(qrScanLoop);
+  setQRStatus("📷 Scanning for QR code...", "Point at any QR code");
+  speak("Camera ready. Point your camera at the QR code on the department entrance.");
+
+  if (method === "BarcodeDetector") {
+    qrLoopDetector();
+  } else {
+    qrAnimFrame = requestAnimationFrame(qrLoopJsQR);
+  }
 }
 
-/* ── SCAN LOOP ───────────────────────────────────────────────────── */
-function qrScanLoop(timestamp) {
+/* ── METHOD 1: Native BarcodeDetector ──────────────────────────────── */
+async function qrLoopDetector() {
   if (!qrActive) return;
+  const video = document.getElementById("qr-video");
 
+  try {
+    const barcodes = await qrDetector.detect(video);
+    qrScanCount++;
+    document.getElementById("qr-hint").innerText = "Frames scanned: " + qrScanCount;
+
+    if (barcodes.length > 0) {
+      qrHandleResult(barcodes[0].rawValue, null, video);
+      return;
+    }
+  } catch(e) {}
+
+  // Voice guidance every 5s
+  const now = Date.now();
+  if (now - qrLastGuide > 5000) {
+    qrLastGuide = now;
+    const msg = QR_GUIDES[qrGuideIdx % QR_GUIDES.length];
+    qrGuideIdx++;
+    setQRStatus("📷 Scanning...", msg + "  (frames: " + qrScanCount + ")");
+    speakOnceQR(msg);
+  }
+
+  setTimeout(qrLoopDetector, 200);  // scan 5x per second
+}
+
+/* ── METHOD 2: jsQR fallback ─────────────────────────────────────── */
+function qrLoopJsQR(ts) {
+  if (!qrActive) return;
   const video  = document.getElementById("qr-video");
   const canvas = document.getElementById("qr-canvas");
 
-  // Wait for video to be ready
-  if (!video.videoWidth || !video.videoHeight) {
-    qrAnimFrame = requestAnimationFrame(qrScanLoop);
-    return;
+  if (video.videoWidth && video.videoHeight) {
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0);
+    qrScanCount++;
+    document.getElementById("qr-hint").innerText = "Frames: " + qrScanCount + " | " + canvas.width + "x" + canvas.height;
+
+    try {
+      const img  = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(img.data, img.width, img.height, { inversionAttempts: "attemptBoth" });
+      if (code && code.data) {
+        qrHandleResult(code.data, code.location, video);
+        return;
+      }
+    } catch(e) {
+      setQRStatus("jsQR error: " + e.message, "");
+    }
   }
 
-  // Draw frame
-  canvas.width  = video.videoWidth;
-  canvas.height = video.videoHeight;
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(video, 0, 0);
-
-  // Try to decode — use "attemptBoth" for best detection rate
-  let code = null;
-  try {
-    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    code = jsQR(img.data, img.width, img.height, {
-      inversionAttempts: "attemptBoth"
-    });
-  } catch(e) {}
-
-  if (code && code.data) {
-    qrFoundCode(code);
-    return; // don't request next frame
-  }
-
-  // No QR found — give periodic voice guidance every 5 seconds
-  if (timestamp - qrLastGuide > 5000) {
-    qrLastGuide = timestamp;
+  // Voice guidance every 5s
+  const now = Date.now();
+  if (now - qrLastGuide > 5000) {
+    qrLastGuide = now;
     const msg = QR_GUIDES[qrGuideIdx % QR_GUIDES.length];
     qrGuideIdx++;
     setQRStatus("📷 Scanning...", msg);
-    speakOnce(msg);
+    speakOnceQR(msg);
   }
 
-  qrAnimFrame = requestAnimationFrame(qrScanLoop);
+  qrAnimFrame = requestAnimationFrame(qrLoopJsQR);
 }
 
-/* ── QR FOUND ────────────────────────────────────────────────────── */
-async function qrFoundCode(code) {
-  const video  = document.getElementById("qr-video");
-  const vW     = video.videoWidth;
-  const vH     = video.videoHeight;
-  const loc    = code.location;
-
-  // QR centre
-  const cx = (loc.topLeftCorner.x + loc.topRightCorner.x +
-              loc.bottomLeftCorner.x + loc.bottomRightCorner.x) / 4;
-  const cy = (loc.topLeftCorner.y + loc.topRightCorner.y +
-              loc.bottomLeftCorner.y + loc.bottomRightCorner.y) / 4;
-
-  // QR size (rough)
-  const qrSize = Math.abs(loc.topRightCorner.x - loc.topLeftCorner.x);
-
-  // Check centering
-  const offX  = cx - vW / 2;
-  const offY  = cy - vH / 2;
-  let adjust  = "";
-
-  if      (qrSize < vW * 0.12)           adjust = "Move closer to the QR code.";
-  else if (qrSize > vW * 0.75)           adjust = "Move back a little.";
-  else if (offX >  vW * 0.22)            adjust = "Move the phone to the left.";
-  else if (offX < -vW * 0.22)            adjust = "Move the phone to the right.";
-  else if (offY >  vH * 0.22)            adjust = "Move the phone up.";
-  else if (offY < -vH * 0.22)            adjust = "Move the phone down.";
-
-  if (adjust) {
-    // Not well centred — guide and keep scanning
-    setQRStatus("QR detected! " + adjust, "");
-    speakOnce("QR code found. " + adjust);
-    qrAnimFrame = requestAnimationFrame(qrScanLoop);
-    return;
-  }
-
-  // ✅ QR well centred — process it
+/* ── HANDLE RESULT ───────────────────────────────────────────────── */
+async function qrHandleResult(data, location, video) {
   qrActive = false;
-  document.getElementById("qr-indicator-bar").style.width = "100%";
-  setQRStatus("✅ QR Code scanned!", code.data);
-  speak("QR code scanned successfully.");
+  if (qrAnimFrame) { cancelAnimationFrame(qrAnimFrame); qrAnimFrame = null; }
 
-  await new Promise(r => setTimeout(r, 800));
+  document.getElementById("qr-indicator-bar").style.width = "100%";
+  setQRStatus("✅ Scanned: " + data, "");
+  speak("QR code scanned. " + data);
+
+  await new Promise(r => setTimeout(r, 600));
   closeQRScanner();
-  await matchQRToLocation(code.data.trim());
+  await matchQRToLocation(data.trim());
 }
 
 /* ── CLOSE ───────────────────────────────────────────────────────── */
@@ -886,23 +905,21 @@ function closeQRScanner() {
   if (qrAnimFrame) { cancelAnimationFrame(qrAnimFrame); qrAnimFrame = null; }
   if (qrStream)    { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
   document.getElementById("qr-overlay").classList.remove("show");
+  document.getElementById("qr-indicator-bar").style.width = "0%";
 }
 
-/* ── MATCH QR DATA TO LOCATION ───────────────────────────────────── */
+/* ── MATCH TO LOCATION ───────────────────────────────────────────── */
 async function matchQRToLocation(data) {
   try {
     const res  = await fetch("/locations");
-    const locs = await res.json();  // [{id, name}, ...]
-
+    const locs = await res.json();
+    const low  = data.toLowerCase();
     let matched = null;
-    const dataLower = data.toLowerCase();
 
     for (const loc of locs) {
-      if (loc.id === data ||
-          loc.name.toLowerCase() === dataLower ||
-          loc.name.toLowerCase().includes(dataLower)) {
-        matched = loc;
-        break;
+      if (loc.id === data || loc.name.toLowerCase() === low ||
+          loc.name.toLowerCase().includes(low)) {
+        matched = loc; break;
       }
     }
 
@@ -911,17 +928,16 @@ async function matchQRToLocation(data) {
       const sel = document.getElementById("start-select");
       sel.value = matched.id;
       sel.classList.add("voice-set");
-      const dest = document.getElementById("dest-select").value;
-      document.getElementById("start-btn").disabled = !dest;
-      setGpsStatus("active", "📷 Location set: " + matched.name);
+      document.getElementById("start-btn").disabled = !document.getElementById("dest-select").value;
+      setGpsStatus("active", "📷 Location: " + matched.name);
       await new Promise(r => setTimeout(r, 2800));
-      speak("Where would you like to go? Use the dropdown or tap the mic to say your destination.");
+      speak("Where would you like to go? Select a destination or tap the mic.");
     } else {
-      speak("QR code read but location not recognised. The code says: " + data);
-      setGpsStatus("error", "QR not matched: " + data);
+      speak("QR code read as: " + data + ". Location not found in campus map.");
+      setGpsStatus("error", "Not found: " + data);
     }
   } catch(e) {
-    speak("Could not read campus data. Please try again.");
+    speak("Could not connect to server. Please try again.");
   }
 }
 
@@ -930,16 +946,16 @@ function setQRStatus(status, hint) {
   const s = document.getElementById("qr-status");
   const h = document.getElementById("qr-hint");
   if (s) s.innerText = status;
-  if (h) h.innerText = hint;
+  if (h) h.innerText = hint !== undefined ? hint : "";
 }
 
-let _lastSpokenQR = "";
-function speakOnce(msg) {
-  if (msg === _lastSpokenQR) return;
-  _lastSpokenQR = msg;
+let _lastQRSpoken = "";
+function speakOnceQR(msg) {
+  if (msg === _lastQRSpoken) return;
+  _lastQRSpoken = msg;
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(msg);
   u.rate = 0.92; u.pitch = 1; u.volume = 1;
-  u.onend = () => { _lastSpokenQR = ""; };
+  u.onend = () => { _lastQRSpoken = ""; };
   window.speechSynthesis.speak(u);
 }
