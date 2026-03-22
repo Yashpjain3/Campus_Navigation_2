@@ -778,7 +778,7 @@ async function openQRScanner() {
     method = "jsQR";
   }
 
-  setQRStatus("📷 Starting camera...", "Method: " + method);
+  setQRStatus("📷 Starting camera...", "Scanning...");
 
   if (method === "none") {
     setQRStatus("❌ No QR scanner available", "Please use Chrome on Android");
@@ -825,7 +825,6 @@ async function qrLoopDetector() {
   try {
     const barcodes = await qrDetector.detect(video);
     qrScanCount++;
-    document.getElementById("qr-hint").innerText = "Frames scanned: " + qrScanCount;
 
     if (barcodes.length > 0) {
       qrHandleResult(barcodes[0].rawValue, null, video);
@@ -839,7 +838,7 @@ async function qrLoopDetector() {
     qrLastGuide = now;
     const msg = QR_GUIDES[qrGuideIdx % QR_GUIDES.length];
     qrGuideIdx++;
-    setQRStatus("📷 Scanning...", msg + "  (frames: " + qrScanCount + ")");
+    setQRStatus("📷 Scanning...", msg + "");
     speakOnceQR(msg);
   }
 
@@ -858,7 +857,6 @@ function qrLoopJsQR(ts) {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0);
     qrScanCount++;
-    document.getElementById("qr-hint").innerText = "Frames: " + qrScanCount + " | " + canvas.width + "x" + canvas.height;
 
     try {
       const img  = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -910,19 +908,21 @@ function closeQRScanner() {
 
 /* ── MATCH TO LOCATION ───────────────────────────────────────────── */
 async function matchQRToLocation(data) {
+  if (data.startsWith("indoor_")) {
+    await startIndoorNavigation(data);
+    return;
+  }
   try {
     const res  = await fetch("/locations");
     const locs = await res.json();
     const low  = data.toLowerCase();
     let matched = null;
-
     for (const loc of locs) {
       if (loc.id === data || loc.name.toLowerCase() === low ||
           loc.name.toLowerCase().includes(low)) {
         matched = loc; break;
       }
     }
-
     if (matched) {
       speak("You are at " + matched.name + ". Setting as your starting location.");
       const sel = document.getElementById("start-select");
@@ -941,21 +941,252 @@ async function matchQRToLocation(data) {
   }
 }
 
-/* ── HELPERS ─────────────────────────────────────────────────────── */
-function setQRStatus(status, hint) {
-  const s = document.getElementById("qr-status");
-  const h = document.getElementById("qr-hint");
-  if (s) s.innerText = status;
-  if (h) h.innerText = hint !== undefined ? hint : "";
+/* ── Indoor destination picker ───────────────────────────────────── */
+
+/* ================================================================== */
+/*  INDOOR NAVIGATION — Admin Block                                    */
+/* ================================================================== */
+
+let indoorStart   = null;
+let indoorSteps   = [];
+let indoorStepIdx = 0;
+
+async function startIndoorNavigation(locationId) {
+  let locName = locationId;
+  try {
+    const r = await fetch("/indoor/locations");
+    const locs = await r.json();
+    locName = (locs[locationId] || {}).name || locationId;
+  } catch(e) {}
+
+  indoorStart = locationId;
+  speak("You are at " + locName + " in the Admin Block.");
+  setGpsStatus("active", "🏢 Indoor: " + locName);
+  await new Promise(r => setTimeout(r, 2000));
+
+  // Get possible destinations
+  let dests = [];
+  try {
+    const r = await fetch("/indoor/navigate", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({start: locationId})
+    });
+    const d = await r.json();
+    dests = d.destinations || [];
+  } catch(e) {}
+
+  if (!dests.length) {
+    speak("No indoor routes available from this location.");
+    return;
+  }
+
+  renderIndoorPanel(`
+    <div style="font-size:13px;color:#7a8dab;margin-bottom:4px;">🏢 Admin Block — Indoor Navigation</div>
+    <div style="font-size:15px;font-weight:700;margin-bottom:14px;">📍 ${locName}</div>
+    <div style="font-size:13px;color:#7a8dab;margin-bottom:8px;">Select destination:</div>
+    <div style="display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;">
+      ${dests.map(d => `<button class="ind-btn" onclick="selectIndoorDest('${d.id}','${d.name.replace(/'/g,"\\'")}')">🚪 ${d.name}</button>`).join("")}
+    </div>
+    <button class="ind-cancel" onclick="closeIndoorPanel()">✕ Cancel</button>
+  `);
+  speak("Where would you like to go? " + dests.map(d=>d.name).slice(0,4).join(", "));
 }
 
-let _lastQRSpoken = "";
-function speakOnceQR(msg) {
-  if (msg === _lastQRSpoken) return;
-  _lastQRSpoken = msg;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(msg);
-  u.rate = 0.92; u.pitch = 1; u.volume = 1;
-  u.onend = () => { _lastQRSpoken = ""; };
-  window.speechSynthesis.speak(u);
+async function selectIndoorDest(destId, destName) {
+  speak("Getting directions to " + destName + ".");
+  try {
+    const res  = await fetch("/indoor/route", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({start: indoorStart, destination: destId})
+    });
+    const data = await res.json();
+    if (data.found) {
+      indoorSteps   = data.steps;
+      indoorStepIdx = 0;
+      renderCurrentStep(destName);
+    } else {
+      speak("Sorry, no route found to " + destName);
+    }
+  } catch(e) {
+    speak("Could not get directions. Please try again.");
+  }
+}
+
+function renderCurrentStep(destName) {
+  if (indoorStepIdx >= indoorSteps.length) {
+    speak("You have arrived at your destination.");
+    setTimeout(closeIndoorPanel, 3000);
+    return;
+  }
+  const step  = indoorSteps[indoorStepIdx];
+  const prog  = indoorStepIdx + 1;
+  const total = indoorSteps.length;
+
+  renderIndoorPanel(`
+    <div style="font-size:12px;color:#7a8dab;margin-bottom:6px;">🏢 Admin Block &nbsp;·&nbsp; Step ${prog} of ${total}</div>
+    <div style="background:#1a2235;border-left:3px solid #00d4ff;padding:14px;
+                border-radius:8px;font-size:16px;line-height:1.6;margin-bottom:16px;">
+      ${step}
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      ${prog > 1 ? `<button class="ind-btn" style="flex:1" onclick="indoorPrev()">← Back</button>` : ""}
+      <button class="ind-btn" style="flex:2;background:linear-gradient(135deg,#00d4ff20,#00d4ff40);
+        border-color:#00d4ff;color:#00d4ff;font-weight:700;" onclick="indoorNext()">
+        ${prog < total ? "Next →" : "✅ Arrived"}
+      </button>
+    </div>
+    <button onclick="speak(indoorSteps[indoorStepIdx])" class="ind-btn" style="width:100%;margin-bottom:6px;">
+      🔊 Repeat Instruction
+    </button>
+    <button class="ind-cancel" onclick="closeIndoorPanel()">✕ Stop Indoor Navigation</button>
+  `);
+  speak(step);
+}
+
+function indoorNext() {
+  indoorStepIdx++;
+  renderCurrentStep("");
+}
+function indoorPrev() {
+  if (indoorStepIdx > 0) { indoorStepIdx--; renderCurrentStep(""); }
+}
+
+function renderIndoorPanel(html) {
+  let p = document.getElementById("indoor-panel");
+  if (!p) {
+    p = document.createElement("div");
+    p.id = "indoor-panel";
+    document.body.appendChild(p);
+  }
+  p.style.cssText = `
+    position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;
+    background:#131929;border-top:2px solid #00d4ff;border-radius:20px 20px 0 0;
+    padding:20px;z-index:4000;font-family:'Sora',sans-serif;color:#e8f0fe;
+    box-shadow:0 -4px 24px rgba(0,212,255,0.15);
+  `;
+  // Inject shared button styles once
+  if (!document.getElementById("ind-styles")) {
+    const s = document.createElement("style");
+    s.id = "ind-styles";
+    s.textContent = `
+      .ind-btn{background:#1a2235;border:1px solid #2a3a55;color:#e8f0fe;padding:12px 16px;
+               border-radius:12px;font-size:14px;cursor:pointer;font-family:'Sora',sans-serif;width:100%;}
+      .ind-btn:active{opacity:0.7;}
+      .ind-cancel{margin-top:8px;width:100%;padding:10px;background:transparent;
+                  border:1px solid #ff4d6d;color:#ff4d6d;border-radius:12px;
+                  font-size:13px;cursor:pointer;font-family:'Sora',sans-serif;}
+    `;
+    document.head.appendChild(s);
+  }
+  p.innerHTML = html;
+  p.style.display = "block";
+}
+
+function closeIndoorPanel() {
+  const p = document.getElementById("indoor-panel");
+  if (p) p.style.display = "none";
+  indoorSteps=[]; indoorStepIdx=0; indoorStart=null;
+}
+
+/* ================================================================== */
+/*  INDOOR NAVIGATION                                                  */
+/* ================================================================== */
+
+let indoorStep      = 0;
+let indoorSteps     = [];
+let indoorBuilding  = null;
+
+async function openIndoorNav(buildingId, fromId) {
+  // Fetch all indoor locations for this building
+  const res   = await fetch("/indoor_locations");
+  const locs  = await res.json();
+  const rooms = locs.filter(l => l.building_id === buildingId && l.type === "room");
+
+  if (rooms.length === 0) {
+    speak("No indoor rooms found for this building.");
+    return;
+  }
+
+  // Show indoor destination picker
+  const panel = document.getElementById("indoor-panel");
+  const list  = document.getElementById("indoor-room-list");
+  list.innerHTML = "";
+
+  rooms.forEach(room => {
+    const btn = document.createElement("button");
+    btn.className = "indoor-room-btn";
+    btn.innerText = `Floor ${room.floor} — ${room.name}`;
+    btn.onclick = () => startIndoorNav(buildingId, fromId, room.id, room.name);
+    list.appendChild(btn);
+  });
+
+  panel.style.display = "block";
+  speak("Indoor navigation for " + (buildingId === "admin_block" ? "Admin Block" : buildingId) +
+        ". Select your destination.");
+}
+
+async function startIndoorNav(buildingId, fromId, toId, toName) {
+  document.getElementById("indoor-panel").style.display = "none";
+
+  const res  = await fetch("/indoor_navigate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ building_id: buildingId, from_id: fromId, to_id: toId })
+  });
+  const data = await res.json();
+
+  if (data.error) {
+    speak("Sorry, no indoor route found. " + data.error);
+    return;
+  }
+
+  indoorSteps    = data.instructions;
+  indoorStep     = 0;
+  indoorBuilding = buildingId;
+
+  // Show indoor nav UI
+  document.getElementById("indoor-nav-card").style.display = "block";
+  document.getElementById("indoor-destination").innerText  = toName;
+  showIndoorStep();
+}
+
+function showIndoorStep() {
+  if (indoorStep >= indoorSteps.length) {
+    speak("You have arrived at your destination.");
+    document.getElementById("indoor-instruction").innerText = "✅ You have arrived!";
+    document.getElementById("indoor-next-btn").disabled = true;
+    return;
+  }
+
+  const step = indoorSteps[indoorStep];
+  const text = `Step ${indoorStep + 1} of ${indoorSteps.length}: ${step.instruction}`;
+  document.getElementById("indoor-instruction").innerText = text;
+  document.getElementById("indoor-step-count").innerText  =
+    `${indoorStep + 1} / ${indoorSteps.length}`;
+
+  if (step.floor_change) {
+    speak(step.instruction + " You are changing floors.");
+  } else {
+    speak(step.instruction);
+  }
+}
+
+function indoorNextStep() {
+  indoorStep++;
+  showIndoorStep();
+}
+
+function indoorPrevStep() {
+  if (indoorStep > 0) { indoorStep--; showIndoorStep(); }
+}
+
+function indoorRepeat() {
+  if (indoorSteps[indoorStep]) speak(indoorSteps[indoorStep].instruction);
+}
+
+function closeIndoorNav() {
+  document.getElementById("indoor-nav-card").style.display = "none";
+  document.getElementById("indoor-panel").style.display    = "none";
+  indoorSteps = []; indoorStep = 0;
+  speak("Indoor navigation closed.");
 }
