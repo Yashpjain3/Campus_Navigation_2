@@ -29,6 +29,77 @@ _BASE = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(_BASE, "campus.json"), "r") as f:
     campus_data = json.load(f)
 
+
+# ─────────────────────────────────────────────
+# Load Indoor Map
+# ─────────────────────────────────────────────
+with open(os.path.join(_BASE, "indoor_map.json"), "r") as f:
+    indoor_map = json.load(f)
+
+def get_indoor_path(building_id, from_id, to_id):
+    """Find path between two indoor nodes using simple BFS"""
+    building = indoor_map["buildings"].get(building_id)
+    if not building: return None
+
+    # Build flat graph of all indoor nodes across all floors
+    graph = {}
+    for floor_name, floor_data in building["floors"].items():
+        paths = floor_data.get("paths", {})
+        for src, dests in paths.items():
+            graph.setdefault(src, {})
+            for dst, info in dests.items():
+                graph[src][dst] = info
+
+    # BFS to find path
+    from collections import deque
+    queue = deque([[from_id]])
+    visited = {from_id}
+    while queue:
+        path = queue.popleft()
+        node = path[-1]
+        if node == to_id:
+            return path
+        for neighbor in graph.get(node, {}):
+            if neighbor not in visited:
+                visited.add(neighbor)
+                queue.append(path + [neighbor])
+    return None
+
+def build_indoor_instructions(building_id, path):
+    """Convert indoor path to list of voice instructions"""
+    building = indoor_map["buildings"].get(building_id)
+    if not building: return []
+
+    # Build flat graph
+    graph = {}
+    node_info = {}
+    for floor_name, floor_data in building["floors"].items():
+        for nid, ndata in floor_data.get("nodes", {}).items():
+            node_info[nid] = ndata
+        for src, dests in floor_data.get("paths", {}).items():
+            graph.setdefault(src, {})
+            for dst, info in dests.items():
+                graph[src][dst] = info
+
+    instructions = []
+    for i in range(len(path) - 1):
+        src, dst = path[i], path[i+1]
+        info = graph.get(src, {}).get(dst, {})
+        dst_name = node_info.get(dst, {}).get("name", dst)
+        instr = info.get("instruction", "Proceed to " + dst_name)
+        floor_change = info.get("floor_change", False)
+        instructions.append({
+            "from":         src,
+            "to":           dst,
+            "to_name":      dst_name,
+            "instruction":  instr,
+            "steps":        info.get("steps", 0),
+            "floor_change": floor_change,
+            "to_floor":     info.get("to_floor", None)
+        })
+    return instructions
+
+
 # Build directed graph from connectivity list
 # New campus.json format: paths[start] = [end1, end2, ...]  (no instruction text)
 G = nx.DiGraph()
@@ -310,6 +381,51 @@ def update_location():
         "arrived":        arrived,
         "target_bearing": round(road_bear, 1),
         "next_location":  next_node_name
+    })
+
+
+@app.route("/indoor_locations", methods=["GET"])
+def get_indoor_locations():
+    """Return all indoor navigable locations"""
+    locations = []
+    for bldg_id, bldg in indoor_map["buildings"].items():
+        for floor_name, floor_data in bldg["floors"].items():
+            for nid, ndata in floor_data.get("nodes", {}).items():
+                locations.append({
+                    "id":       nid,
+                    "name":     ndata["name"],
+                    "building": bldg["name"],
+                    "floor":    ndata.get("floor", 0),
+                    "type":     ndata.get("type", "room"),
+                    "building_id": bldg_id
+                })
+    return jsonify(locations)
+
+@app.route("/indoor_navigate", methods=["POST"])
+def indoor_navigate():
+    """Get step-by-step indoor navigation"""
+    data        = request.json
+    building_id = data.get("building_id", "admin_block")
+    from_id     = data.get("from_id", "").strip()
+    to_id       = data.get("to_id", "").strip()
+
+    building = indoor_map["buildings"].get(building_id)
+    if not building:
+        return jsonify({"error": "Building not found"})
+
+    # If coming from outdoor node, start at ground lift
+    if from_id == building.get("outdoor_node"):
+        from_id = building["lift"]["ground"]
+
+    path = get_indoor_path(building_id, from_id, to_id)
+    if not path:
+        return jsonify({"error": "No indoor path found between these locations"})
+
+    instructions = build_indoor_instructions(building_id, path)
+    return jsonify({
+        "path":         path,
+        "instructions": instructions,
+        "total_steps":  len(instructions)
     })
 
 @app.route("/debug", methods=["GET"])
