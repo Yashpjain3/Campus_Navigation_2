@@ -1,0 +1,142 @@
+{
+  "building": "Admin Block",
+  "locations": {
+    "indoor_lift_ground": { "name": "Lift - Ground Floor", "floor": 0 },
+    "indoor_lift_first":  { "name": "Lift - First Floor",  "floor": 1 },
+    "indoor_lift_second": { "name": "Lift - Second Floor", "floor": 2 },
+    "indoor_stairs_top":  { "name": "Stairs Top (2nd→Ground)", "floor": 2 },
+    "indoor_stairs_mid":  { "name": "Stairs Mid (1st→Ground)",  "floor": 1 },
+    "indoor_stairs_ground": { "name": "Stairs Bottom (Ground)", "floor": 0 },
+
+    "indoor_nwlab":       { "name": "NW Lab",                    "floor": 2 },
+    "indoor_powerelec":   { "name": "Power Electronics Lab",     "floor": 2 },
+    "indoor_hod":         { "name": "HOD Cabin",                 "floor": 2 },
+    "indoor_analoglab":   { "name": "Analog Electronics Lab",    "floor": 2 },
+    "indoor_digitallab":  { "name": "Digital Lab",               "floor": 2 },
+    "indoor_commlab":     { "name": "Communication Lab",         "floor": 2 },
+    "indoor_ab203":       { "name": "AB203",                     "floor": 2 },
+    "indoor_vlsilab":     { "name": "VLSI Lab",                  "floor": 2 },
+
+    "indoor_ab104":       { "name": "AB104",                     "floor": 1 },
+    "indoor_refsection":  { "name": "Reference Section",         "floor": 1 },
+
+    "indoor_admin_exit":  { "name": "Admin Block Ground Exit",   "floor": 0 }
+  },
+
+  "routes": {
+
+    "indoor_lift_second→indoor_nwlab": [
+      "Exit the lift on the second floor.",
+      "Turn towards the south-west and walk 8 steps.",
+      "Turn west and walk 13 steps.",
+      "NW Lab is on your right. You have arrived."
+    ],
+    "indoor_lift_second→indoor_powerelec": [
+      "Exit the lift on the second floor.",
+      "Turn towards the south-west and walk 8 steps.",
+      "Turn west and walk 13 steps. You will pass the NW Lab.",
+      "Continue west for 16 more steps.",
+      "Power Electronics Lab is on your left. You have arrived."
+    ],
+    "indoor_lift_second→indoor_hod": [
+      "Exit the lift on the second floor.",
+      "Turn towards the south-west and walk 8 steps.",
+      "Turn west and walk 13 steps. You will pass the NW Lab.",
+      "Continue west for 16 more steps past Power Electronics Lab.",
+      "Walk 3 more steps west.",
+      "HOD Cabin is on your right. You have arrived."
+    ],
+
+    "indoor_lift_second→indoor_analoglab": [
+      "Exit the lift on the second floor.",
+      "Turn towards the north-east and walk 17 steps.",
+      "Turn north and walk 4 steps.",
+      "Analog Electronics Lab is here. You have arrived."
+    ],
+    "indoor_lift_second→indoor_digitallab": [
+      "Exit the lift on the second floor.",
+      "Turn towards the north-east and walk 17 steps.",
+      "Turn north and walk 4 steps past Analog Electronics Lab.",
+      "Continue north for 29 more steps.",
+      "Digital Lab is here. You have arrived."
+    ],
+    "indoor_lift_second→indoor_commlab": [
+      "Exit the lift on the second floor.",
+      "Turn towards the north-east and walk 17 steps.",
+      "Turn north and walk 4 steps past Analog Electronics Lab.",
+      "Continue north 29 steps past Digital Lab.",
+      "Continue north for 22 more steps.",
+      "Communication Lab is here. You have arrived."
+    ],
+    "indoor_lift_second→indoor_ab203": [
+      "Exit the lift on the second floor.",
+      "Turn towards the north-east and walk 17 steps.",
+      "Turn north and walk 4 steps past Analog Electronics Lab.",
+      "Continue north 29 steps past Digital Lab.",
+      "Continue north 22 steps past Communication Lab.",
+      "Walk north 10 more steps.",
+      "AB203 is here. You have arrived."
+    ],
+    "indoor_lift_second→indoor_vlsilab": [
+      "Exit the lift on the second floor.",
+      "Turn towards the north-east and walk 17 steps.",
+      "Turn north and walk 4 steps past Analog Electronics Lab.",
+      "Continue north 29 steps past Digital Lab.",
+      "Continue north 22 steps past Communication Lab.",
+      "Walk north 10 steps past AB203.",
+      "Walk north 48 more steps.",
+      "VLSI Lab is here. You have arrived."
+    ],
+    "indoor_lift_second→indoor_stairs_top": [
+      "Exit the lift on the second floor.",
+      "Turn towards the north-east and walk 17 steps.",
+      "Turn north and walk past all labs — Analog, Digital, Communication, AB203, VLSI.",
+      "After VLSI Lab, turn east and walk 10 steps.",
+      "Make a U-turn. The stairs are here going down to the first and ground floor.",
+      "Hold the handrail and descend carefully."
+    ],
+
+    "indoor_lift_first→indoor_ab104": [
+      "Exit the lift on the first floor.",
+      "Turn slightly towards the north-east and walk 15 steps.",
+      "Turn north and walk 50 steps.",
+      "AB104 is here. You have arrived."
+    ],
+    "indoor_lift_first→indoor_stairs_mid": [
+      "Exit the lift on the first floor.",
+      "Turn slightly towards the north-east and walk 15 steps.",
+      "Turn north and walk 50 steps past AB104.",
+      "Continue north 68 more steps.",
+      "Turn east and walk 10 steps.",
+      "Make a U-turn. The stairs going down to the ground floor are here.",
+      "Hold the handrail and descend carefully."
+    ],
+    "indoor_lift_first→indoor_refsection": [
+      "Exit the lift on the first floor.",
+      "Turn right towards the south-west and walk 5 steps.",
+      "Reference Section is here. You have arrived."
+    ],
+
+    "indoor_lift_ground→indoor_admin_exit": [
+      "Exit the lift on the ground floor.",
+      "Walk straight ahead with a slight left for 30 steps.",
+      "Carefully climb down 2 steps.",
+      "You are now at the Admin Block outdoor entrance."
+    ],
+
+    "indoor_stairs_top→loc_002": [
+      "You are at the staircase. Hold the handrail.",
+      "Descend to the first floor landing, then continue to the ground floor.",
+      "At the ground floor, walk straight east for 10 steps.",
+      "Carefully climb down 2 steps.",
+      "You have reached the Chemistry Department entrance."
+    ],
+    "indoor_stairs_mid→loc_002": [
+      "You are at the staircase. Hold the handrail.",
+      "Descend to the ground floor.",
+      "At the ground floor, walk straight east for 10 steps.",
+      "Carefully climb down 2 steps.",
+      "You have reached the Chemistry Department entrance."
+    ]
+  }
+}
