@@ -784,6 +784,7 @@ async function openQRScanner() {
   // Attach stream to video element
   const video = document.getElementById("qr-video");
   video.srcObject = qrStream;
+  await video.play();
   video.setAttribute("playsinline", "true");
   video.muted = true;
 
