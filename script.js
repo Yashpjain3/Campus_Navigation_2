@@ -781,12 +781,31 @@ async function openQRScanner() {
     }
   }
 
-  // Attach stream to video element
-  const video = document.getElementById("qr-video");
-  video.srcObject = qrStream;
-  await video.play();
-  video.setAttribute("playsinline", "true");
-  video.muted = true;
+ const video = document.getElementById("qr-video");
+
+ video.srcObject = qrStream;
+
+ // ✅ ensure proper playback
+ video.setAttribute("autoplay", true);
+ video.setAttribute("muted", true);
+ video.setAttribute("playsinline", true);
+
+ try {
+   await video.play();
+ } catch (e) {
+   console.log("Video play error:", e);
+ }
+
+ // 🔥 ensure frames are actually loaded
+ await new Promise((resolve) => {
+   if (video.readyState >= 2) {
+     resolve();
+   } else {
+     video.onloadeddata = () => resolve();
+   }
+ });
+
+console.log("Video ready:", video.videoWidth, video.videoHeight);
 
   // Wait for video to be ready
   await new Promise((resolve) => {
