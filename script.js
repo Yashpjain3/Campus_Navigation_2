@@ -763,57 +763,77 @@ async function openQRScanner() {
   qrLastGuide = Date.now();
   qrScanCount = 0;
 
-  // Check what scanner is available
-  let method = "none";
+  setQRStatus("📷 Starting camera...", "Please allow camera access");
+
+  // ── STEP 1: Start camera FIRST (don't wait for scanner check) ──────
+  try {
+    qrStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment", width:{ideal:1280}, height:{ideal:720} }
+    });
+  } catch(e1) {
+    try {
+      // Fallback: any camera, no constraints
+      qrStream = await navigator.mediaDevices.getUserMedia({ video: true });
+    } catch(e2) {
+      setQRStatus("❌ Camera access denied", "Go to browser settings → allow camera → try again");
+      speak("Camera access denied. Please allow camera permission in your browser settings and try again.");
+      return;
+    }
+  }
+
+  // Attach stream to video element
+  const video = document.getElementById("qr-video");
+  video.srcObject = qrStream;
+  video.setAttribute("playsinline", "true");
+  video.muted = true;
+
+  // Wait for video to be ready
+  await new Promise((resolve) => {
+    video.onloadedmetadata = resolve;
+    video.play().catch(()=>{});
+    setTimeout(resolve, 3000); // fallback timeout
+  });
+
+  setQRStatus("📷 Camera active — looking for QR code", "Point camera at the QR code");
+  speak("Camera ready. Point your camera at the QR code.");
+  document.getElementById("qr-indicator-bar").style.width = "0%";
+
+  // ── STEP 2: Detect scanner method ────────────────────────────────────
+  let method = "jsQR"; // default fallback
+
   if (typeof BarcodeDetector !== "undefined") {
     try {
-      const formats = await BarcodeDetector.getSupportedFormats();
+      // Use a short timeout so it doesn't hang
+      const formatsPromise = BarcodeDetector.getSupportedFormats();
+      const formats = await Promise.race([
+        formatsPromise,
+        new Promise(r => setTimeout(() => r([]), 1000))
+      ]);
       if (formats.includes("qr_code")) {
         qrDetector = new BarcodeDetector({ formats: ["qr_code"] });
         method = "BarcodeDetector";
       }
     } catch(e) {}
   }
-  if (method === "none" && typeof jsQR !== "undefined") {
-    method = "jsQR";
-  }
-
-  setQRStatus("📷 Starting camera...", "Scanning...");
-
-  if (method === "none") {
-    setQRStatus("❌ No QR scanner available", "Please use Chrome on Android");
-    speak("QR scanning is not supported on this browser. Please use Chrome.");
-    return;
-  }
-
-  // Start camera
-  try {
-    qrStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" }
-    });
-  } catch(e) {
-    try {
-      qrStream = await navigator.mediaDevices.getUserMedia({ video: true });
-    } catch(e2) {
-      setQRStatus("❌ Camera denied", "Allow camera in browser settings");
-      speak("Camera access denied. Please allow camera and try again.");
-      return;
-    }
-  }
-
-  const video = document.getElementById("qr-video");
-  video.srcObject = qrStream;
-  video.setAttribute("playsinline", true);
-  await video.play().catch(()=>{});
-
-  document.getElementById("qr-indicator-bar").style.width = "0%";
-  setQRStatus("📷 Scanning for QR code...", "Point at any QR code");
-  speak("Camera ready. Point your camera at the QR code on the department entrance.");
 
   if (method === "BarcodeDetector") {
     qrLoopDetector();
-  } else {
+  } else if (typeof jsQR !== "undefined") {
     qrAnimFrame = requestAnimationFrame(qrLoopJsQR);
+  } else {
+    // Last resort: try BarcodeDetector without format check
+    if (typeof BarcodeDetector !== "undefined") {
+      try {
+        qrDetector = new BarcodeDetector({ formats: ["qr_code"] });
+        qrLoopDetector();
+      } catch(e) {
+        setQRStatus("❌ QR scanner unavailable", "Please use Chrome on Android");
+        speak("QR scanning not supported. Please use Google Chrome.");
+      }
+    } else {
+      setQRStatus("❌ QR scanner unavailable", "Please use Chrome on Android");
+      speak("QR scanning not supported on this browser. Please use Google Chrome.");
+    }
   }
 }
 
