@@ -743,6 +743,21 @@ let qrGuideIdx   = 0;
 let qrLastGuide  = 0;
 let qrScanCount  = 0;      // debug: how many frames scanned
 
+// Speak QR guidance — avoids interrupting itself repeatedly
+let _qrLastSpoken = "";
+function speakOnceQR(msg) {
+  if (msg === _qrLastSpoken) return;
+  _qrLastSpoken = msg;
+  speak(msg);
+}
+
+function setQRStatus(status, hint) {
+  const s = document.getElementById("qr-status");
+  const h = document.getElementById("qr-hint");
+  if (s) s.textContent = status;
+  if (h) h.textContent = hint;
+}
+
 const QR_GUIDES = [
   "Move the phone closer to the QR code.",
   "Move the phone to the left.",
@@ -1129,4 +1144,62 @@ function closeIndoorPanel() {
 }
 
 /* ================================================================== */
-/*  INDOOR NAVIGATION                                                  */
+/*  INDOOR NAVIGATION — Dashboard button entry point                  */
+/* ================================================================== */
+
+async function openIndoorNav() {
+  // Fetch all indoor locations and let user pick their starting point
+  let locs = {};
+  try {
+    const r = await fetch("/indoor/locations");
+    locs = await r.json();
+  } catch(e) {
+    speak("Could not load indoor map. Please check your connection.");
+    return;
+  }
+
+  // Build a list of all indoor starting points that have outgoing routes
+  let startPoints = [];
+  try {
+    // We'll show lift/stairs/exit as entry points (common starting points)
+    const entryIds = [
+      "indoor_lift_ground", "indoor_lift_first", "indoor_lift_second",
+      "indoor_stairs_top", "indoor_stairs_mid", "indoor_stairs_ground",
+      "indoor_admin_exit"
+    ];
+    for (const id of entryIds) {
+      if (locs[id]) startPoints.push({ id, name: locs[id].name, floor: locs[id].floor });
+    }
+    // Also add room-level starts if they have routes
+    for (const [id, info] of Object.entries(locs)) {
+      if (!entryIds.includes(id)) startPoints.push({ id, name: info.name, floor: info.floor });
+    }
+  } catch(e) {}
+
+  // Sort by floor then name
+  startPoints.sort((a, b) => a.floor - b.floor || a.name.localeCompare(b.name));
+
+  const floorLabel = f => f === 0 ? "Ground" : f === 1 ? "1st Floor" : f === 2 ? "2nd Floor" : `Floor ${f}`;
+
+  renderIndoorPanel(`
+    <div style="font-size:13px;color:#7a8dab;margin-bottom:4px;">🏢 Admin Block — Indoor Navigation</div>
+    <div style="font-size:15px;font-weight:700;margin-bottom:14px;">Where are you now?</div>
+    <div style="font-size:13px;color:#7a8dab;margin-bottom:8px;">Select your current location:</div>
+    <div style="display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;">
+      ${startPoints.map(p => `
+        <button class="ind-btn" onclick="selectIndoorStart('${p.id}','${p.name.replace(/'/g,"\\'")}')">
+          <span style="font-size:11px;color:#7a8dab;display:block;">${floorLabel(p.floor)}</span>
+          📍 ${p.name}
+        </button>`).join("")}
+    </div>
+    <button class="ind-cancel" onclick="closeIndoorPanel()">✕ Cancel</button>
+  `);
+  speak("Indoor navigation. Where are you now? Select your current location.");
+}
+
+async function selectIndoorStart(locationId, locationName) {
+  indoorStart = locationId;
+  speak("Got it. You are at " + locationName + ". Where would you like to go?");
+  await new Promise(r => setTimeout(r, 1800));
+  await startIndoorNavigation(locationId);
+}
