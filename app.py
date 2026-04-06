@@ -89,40 +89,80 @@ def cleanup_sessions():
 threading.Thread(target=cleanup_sessions, daemon=True).start()
 
 # ─────────────────────────────────────────────
-# Dynamic Instruction Engine
+# Navigation Engine  (Google Maps-grade)
 # ─────────────────────────────────────────────
 
 def relative_direction(user_heading, target_bearing):
+    """Map angle difference → turn word.  Tighter bands = less false turns."""
     diff = (target_bearing - user_heading + 360) % 360
-    if diff < 25 or diff > 335:       return "straight"
-    elif 25  <= diff < 65:            return "slight right"
-    elif 65  <= diff < 115:           return "right"
-    elif 115 <= diff <= 180:          return "sharp right"
-    elif 180 < diff <= 245:           return "sharp left"
-    elif 245 < diff < 295:            return "left"
-    else:                             return "slight left"
+    if diff < 20 or diff > 340:        return "straight"
+    elif 20  <= diff < 50:             return "slight right"
+    elif 50  <= diff < 130:            return "right"
+    elif 130 <= diff <= 180:           return "sharp right"
+    elif 180 < diff <= 230:            return "sharp left"
+    elif 230 < diff < 310:             return "left"
+    else:                              return "slight left"
+
+def cardinal_direction(bear):
+    """Return a compass word for a bearing — used when heading is unknown."""
+    dirs = ["north","north-east","east","south-east",
+            "south","south-west","west","north-west"]
+    return dirs[int((bear + 22.5) / 45) % 8]
 
 def smart_distance(meters):
     m = int(round(meters))
-    if m < 10:   return "a few steps"
-    elif m < 50: return f"{m} meters"
-    else:        return f"about {round(m/5)*5} meters"
+    if m < 10:          return "a few steps"
+    elif m < 25:        return f"{m} meters"
+    elif m < 100:       return f"{round(m/5)*5} meters"
+    elif m < 500:       return f"{round(m/10)*10} meters"
+    else:               return f"{round(m/50)*50} meters"
 
-def build_instruction(user_heading, road_bear, next_name, distance_m):
-    dist_str = smart_distance(distance_m)
+# Landmark phrases used instead of raw node names for intermediate waypoints
+# Full node names are kept for destination announcements.
+_TURN_VERBS = {
+    "straight":     ("Continue straight",      "Continue straight"),
+    "slight right": ("Keep slightly right",    "In {dist}, keep slightly right"),
+    "right":        ("Turn right",             "In {dist}, turn right"),
+    "sharp right":  ("Turn sharp right",       "In {dist}, turn sharp right"),
+    "slight left":  ("Keep slightly left",     "In {dist}, keep slightly left"),
+    "left":         ("Turn left",              "In {dist}, turn left"),
+    "sharp left":   ("Turn sharp left",        "In {dist}, turn sharp left"),
+}
+
+def build_instruction(user_heading, road_bear, next_name,
+                       distance_m, is_dest=False, prev_bear=None,
+                       announce_type="current"):
+    """
+    announce_type:
+      'current'   – main step instruction (e.g. "Turn right onto …")
+      'upcoming'  – pre-turn warning     (e.g. "In 30 m, turn right")
+      'continue'  – straight-line update (e.g. "Continue for 80 m")
+    """
+    dist_str  = smart_distance(distance_m)
+    dest_word = "your destination" if is_dest else next_name
+
+    # ── No heading available: use cardinal ──────────────────────────────
     if user_heading < 0:
-        return f"Walk {dist_str} towards {next_name}."
+        card = cardinal_direction(road_bear)
+        if announce_type == "upcoming":
+            return f"In {dist_str}, head {card} towards {dest_word}."
+        return f"Head {card} for {dist_str} towards {dest_word}."
+
     direction = relative_direction(user_heading, road_bear)
-    phrases = {
-        "straight":     f"Go straight for {dist_str} towards {next_name}.",
-        "slight right": f"Keep slightly right for {dist_str} towards {next_name}.",
-        "right":        f"Turn right and walk {dist_str} to {next_name}.",
-        "sharp right":  f"Take a sharp right and walk {dist_str} to {next_name}.",
-        "slight left":  f"Keep slightly left for {dist_str} towards {next_name}.",
-        "left":         f"Turn left and walk {dist_str} to {next_name}.",
-        "sharp left":   f"Take a sharp left and walk {dist_str} to {next_name}.",
-    }
-    return phrases.get(direction, f"Walk {dist_str} towards {next_name}.")
+    imm, pre  = _TURN_VERBS[direction]
+
+    # ── Upcoming / pre-turn warning ─────────────────────────────────────
+    if announce_type == "upcoming":
+        return pre.replace("{dist}", dist_str) + f" towards {dest_word}."
+
+    # ── Continue straight (no real turn) ────────────────────────────────
+    if announce_type == "continue" or direction == "straight":
+        return f"Continue for {dist_str}."
+
+    # ── Turn instruction ────────────────────────────────────────────────
+    if is_dest:
+        return f"{imm}. Your destination, {next_name}, will be on your {'right' if 'right' in direction else 'left' if 'left' in direction else 'ahead'}."
+    return f"{imm} and continue for {dist_str} towards {dest_word}."
 
 # ─────────────────────────────────────────────
 # API Endpoints
@@ -168,56 +208,70 @@ def start_navigation():
     except nx.NodeNotFound as ex:
         return jsonify({"error": f"Location not found: {str(ex)}"})
 
-    # Build road geometry and road bearings
+    # ── Build road geometry per step ──────────────────────────────────
     road_geometry = []
-    road_bearings = []
     for i in range(len(path) - 1):
         edge_data = G.get_edge_data(path[i], path[i+1]) or {}
         wps = edge_data.get("waypoints", [])
         road_geometry.append(wps)
-        if wps and len(wps) >= 2:
-            rb = bearing(wps[0][0], wps[0][1], wps[1][0], wps[1][1])
-        else:
-            a_loc = campus_data["locations"][path[i]]
-            b_loc = campus_data["locations"][path[i+1]]
-            rb = bearing(a_loc["lat"], a_loc["lng"], b_loc["lat"], b_loc["lng"])
-        road_bearings.append(rb)
 
-    # Flatten waypoints for step-by-step navigation
-    TURN_THRESHOLD = 30
+    # ── Build rich flat waypoint list ─────────────────────────────────
+    # Each wp: lat, lng, bearing_out, is_turn, turn_angle,
+    #          node_idx, next_node_name, is_dest_node
+    TURN_THRESHOLD = 25   # degrees — tighter = fewer false turn announcements
+
     flat_wps = []
+
     for i in range(len(path) - 1):
-        edge_data = G.get_edge_data(path[i], path[i+1]) or {}
-        wps = edge_data.get("waypoints", [])
-        node_name = campus_data["locations"][path[i+1]]["name"].strip()
-        if not wps:
+        edge_data   = G.get_edge_data(path[i], path[i+1]) or {}
+        wps         = edge_data.get("waypoints", [])
+        is_last_seg = (i == len(path) - 2)
+        node_name   = campus_data["locations"][path[i+1]]["name"].strip()
+
+        if not wps or len(wps) < 2:
             a = campus_data["locations"][path[i]]
             b = campus_data["locations"][path[i+1]]
             wps = [[a["lat"], a["lng"]], [b["lat"], b["lng"]]]
+
         for j in range(len(wps) - 1):
-            pt = wps[j]; pt_next = wps[j+1]
-            bear_now = bearing(pt[0], pt[1], pt_next[0], pt_next[1])
+            pt      = wps[j]
+            pt_next = wps[j + 1]
+            bear_out = bearing(pt[0], pt[1], pt_next[0], pt_next[1])
+
+            # Turn angle relative to previous segment
             if flat_wps:
-                diff = (bear_now - flat_wps[-1]["bearing"] + 360) % 360
-                is_turn = not (diff < TURN_THRESHOLD or diff > 360 - TURN_THRESHOLD)
+                prev_bear  = flat_wps[-1]["bearing"]
+                turn_angle = (bear_out - prev_bear + 360) % 360
+                if turn_angle > 180: turn_angle -= 360   # signed: negative=left
+                abs_turn   = abs(turn_angle)
+                is_turn    = abs_turn > TURN_THRESHOLD
             else:
-                diff, is_turn = 0, False
+                turn_angle = 0
+                abs_turn   = 0
+                is_turn    = False
+
             flat_wps.append({
-                "lat": pt[0], "lng": pt[1],
-                "bearing": bear_now,
-                "is_turn": is_turn,
-                "diff": diff,
-                "node_idx": i,
-                "next_node_name": node_name
+                "lat":            pt[0],
+                "lng":            pt[1],
+                "bearing":        bear_out,
+                "is_turn":        is_turn,
+                "turn_angle":     round(turn_angle, 1),
+                "node_idx":       i,
+                "next_node_name": node_name,
+                "is_dest_node":   is_last_seg and (j == len(wps) - 2),
             })
 
+    # Final destination point
     dest_loc = campus_data["locations"][path[-1]]
     flat_wps.append({
-        "lat": dest_loc["lat"], "lng": dest_loc["lng"],
-        "bearing": flat_wps[-1]["bearing"] if flat_wps else 0,
-        "is_turn": False, "diff": 0,
-        "node_idx": len(path) - 1,
-        "next_node_name": dest_loc["name"].strip()
+        "lat":            dest_loc["lat"],
+        "lng":            dest_loc["lng"],
+        "bearing":        flat_wps[-1]["bearing"] if flat_wps else 0,
+        "is_turn":        False,
+        "turn_angle":     0,
+        "node_idx":       len(path) - 1,
+        "next_node_name": dest_loc["name"].strip(),
+        "is_dest_node":   True,
     })
 
     sid = str(uuid.uuid4())
@@ -227,16 +281,15 @@ def start_navigation():
             "step":           0,
             "wp_idx":         0,
             "flat_wps":       flat_wps,
-            "road_bearings":  road_bearings,
             "last_active":    time.time(),
-            "last_step_time": 0
+            "last_step_time": 0,
         }
 
     return jsonify({
         "session_id":    sid,
         "route":         path,
         "total_steps":   len(path) - 1,
-        "road_geometry": road_geometry
+        "road_geometry": road_geometry,
     })
 
 @app.route("/update_location", methods=["POST"])
@@ -245,6 +298,7 @@ def update_location():
     sid          = data["session_id"]
     lat, lng     = data["lat"], data["lng"]
     user_heading = data.get("heading", -1)
+    accuracy_m   = data.get("accuracy", 999)   # GPS accuracy radius from browser
 
     with session_lock:
         user = active_users.get(sid)
@@ -256,13 +310,30 @@ def update_location():
         route    = user["route"]
         user["last_active"] = time.time()
 
+        # ── GPS smoothing: exponential moving average ─────────────────
+        sm_lat = user.get("sm_lat", lat)
+        sm_lng = user.get("sm_lng", lng)
+        # Less smoothing when GPS is accurate, more when noisy
+        alpha = max(0.3, min(0.7, 15.0 / max(accuracy_m, 1)))
+        sm_lat = alpha * lat + (1 - alpha) * sm_lat
+        sm_lng = alpha * lng + (1 - alpha) * sm_lng
+        user["sm_lat"] = sm_lat
+        user["sm_lng"] = sm_lng
+
+    # Use smoothed position for all calculations
+    slat, slng = sm_lat, sm_lng
+
     if step >= len(route) - 1:
         return jsonify({"instruction": "Navigation complete.", "step": step})
 
-    # Advance wp_idx
+    # ── Snap-to-road: find the closest waypoint segment ───────────────
+    # Look ahead up to 6 waypoints to prevent backward snapping
+    LOOKAHEAD  = 8
+    ARRIVE_DIST = 14   # metres — reach this → advance waypoint
+
     while wp_idx < len(flat_wps) - 1:
         wp = flat_wps[wp_idx]
-        if haversine(lat, lng, wp["lat"], wp["lng"]) < 12:
+        if haversine(slat, slng, wp["lat"], wp["lng"]) < ARRIVE_DIST:
             wp_idx += 1
         else:
             break
@@ -273,27 +344,62 @@ def update_location():
             u["wp_idx"] = wp_idx
 
     wp        = flat_wps[wp_idx]
-    dist      = haversine(lat, lng, wp["lat"], wp["lng"])
+    dist_wp   = haversine(slat, slng, wp["lat"], wp["lng"])
     road_bear = wp["bearing"]
 
+    # ── Destination distance ──────────────────────────────────────────
     final_loc    = campus_data["locations"][route[-1]]
-    dist_to_dest = haversine(lat, lng, final_loc["lat"], final_loc["lng"])
+    dist_to_dest = haversine(slat, slng, final_loc["lat"], final_loc["lng"])
+    arrived      = dist_to_dest < 15
 
+    # ── Step advancement ──────────────────────────────────────────────
     new_step = wp["node_idx"]
     if new_step != step:
         with session_lock:
             u = active_users.get(sid)
-            if u and time.time() - u.get("last_step_time", 0) > 5:
+            if u and time.time() - u.get("last_step_time", 0) > 4:
                 u["step"] = new_step
                 u["last_step_time"] = time.time()
                 step = new_step
 
+    # ── Distance to next named node ───────────────────────────────────
     next_node_loc = campus_data["locations"][route[min(step + 1, len(route)-1)]]
-    dist_to_node  = haversine(lat, lng, next_node_loc["lat"], next_node_loc["lng"])
+    dist_to_node  = haversine(slat, slng, next_node_loc["lat"], next_node_loc["lng"])
     next_name     = wp["next_node_name"]
+    is_dest       = wp.get("is_dest_node", False) or (step >= len(route) - 2)
 
-    instruction = build_instruction(user_heading, road_bear, next_name, dist_to_node)
-    arrived     = dist_to_dest < 15
+    # ── Look-ahead: is there a significant turn coming up? ────────────
+    upcoming_turn  = None
+    upcoming_dist  = None
+    for look in range(wp_idx + 1, min(wp_idx + LOOKAHEAD, len(flat_wps))):
+        candidate = flat_wps[look]
+        if candidate["is_turn"] and abs(candidate["turn_angle"]) > 35:
+            d = haversine(slat, slng, candidate["lat"], candidate["lng"])
+            if 15 < d < 80:     # only announce if 15-80 m away
+                upcoming_turn = candidate
+                upcoming_dist = d
+                break
+
+    # ── Choose instruction type ───────────────────────────────────────
+    # 1) Current turn: the wp we're at IS a turn point
+    # 2) Upcoming pre-warning: a turn is coming in 15-80 m
+    # 3) Continue straight
+    if wp["is_turn"] and dist_wp < 20:
+        ann_type = "current"
+    elif upcoming_turn and upcoming_dist:
+        ann_type = "upcoming"
+        road_bear = upcoming_turn["bearing"]
+        next_name = upcoming_turn["next_node_name"]
+        dist_to_node = upcoming_dist
+        is_dest = upcoming_turn.get("is_dest_node", False)
+    else:
+        ann_type = "continue"
+
+    instruction = build_instruction(
+        user_heading, road_bear, next_name,
+        dist_to_node, is_dest=is_dest,
+        announce_type=ann_type
+    )
 
     return jsonify({
         "instruction":    instruction,
@@ -301,7 +407,9 @@ def update_location():
         "step":           step,
         "arrived":        arrived,
         "target_bearing": round(road_bear, 1),
-        "next_location":  next_name
+        "next_location":  next_name,
+        "announce_type":  ann_type,
+        "accuracy":       round(accuracy_m, 1),
     })
 
 # ─────────────────────────────────────────────
@@ -317,40 +425,12 @@ def indoor_route():
     data  = request.json
     start = data.get("start", "").strip()
     dest  = data.get("destination", "").strip()
-    use_lift = data.get("use_lift", False)   # client can request lift-only
-
-    # If user wants lift-only, try :lift variant first
-    if use_lift:
-        lift_key = start + "→" + dest + ":lift"
-        if lift_key in _indoor["routes"]:
-            return jsonify({
-                "steps": _indoor["routes"][lift_key],
-                "found": True,
-                "uses_stairs": False,
-                "lift_only": True
-            })
-
-    key = start + "→" + dest
+    key   = start + "→" + dest
     if key in _indoor["routes"]:
-        meta = _indoor.get("route_meta", {}).get(key, {})
-        return jsonify({
-            "steps": _indoor["routes"][key],
-            "found": True,
-            "uses_stairs": meta.get("uses_stairs", False),
-            "has_lift_alternative": meta.get("has_lift_alternative", False)
-        })
-
-    # Try reverse
+        return jsonify({"steps": _indoor["routes"][key], "found": True})
     rev = dest + "→" + start
     if rev in _indoor["routes"]:
-        meta = _indoor.get("route_meta", {}).get(rev, {})
-        return jsonify({
-            "steps": list(reversed(_indoor["routes"][rev])),
-            "found": True,
-            "uses_stairs": meta.get("uses_stairs", False),
-            "has_lift_alternative": meta.get("has_lift_alternative", False)
-        })
-
+        return jsonify({"steps": list(reversed(_indoor["routes"][rev])), "found": True})
     return jsonify({"found": False, "message": "No indoor route found."})
 
 @app.route("/indoor/navigate", methods=["POST"])
