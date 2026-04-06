@@ -203,9 +203,9 @@
                   background:#000; z-index:5000; display:none; flex-direction:column;
                   align-items:center; justify-content:center; }
     #qr-overlay.show { display:flex; }
-    #qr-video {width: 100%; max-width: 480px; height: 300px; object-fit: cover; border-radius: 12px; background: black; }
+    #qr-video { width:100%; max-width:480px; border-radius:12px; display:block; min-height:200px; background:#111; object-fit:cover; }
     #qr-canvas { display:none; }
-    #qr-frame { position:relative; width:100%; max-width:480px;  height: 300px; }
+    #qr-frame { position:relative; width:100%; max-width:480px; }
     #qr-guide { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
                 width:220px; height:220px; border:3px solid var(--accent);
                 border-radius:12px; box-shadow:0 0 0 9999px rgba(0,0,0,0.5); }
@@ -219,6 +219,50 @@
                     margin-top:16px; overflow:hidden; }
     #qr-indicator-bar { height:100%; width:0%; background:var(--accent);
                         border-radius:3px; transition:width 0.3s; }
+
+
+    /* ── INDOOR NAV ─────────────────────────────────────── */
+    #indoor-card { display:none; }
+    .floor-tabs { display:flex; gap:8px; margin-bottom:12px; }
+    .floor-tab  { flex:1; padding:8px; border-radius:8px; border:1px solid var(--border);
+                  background:var(--surface); color:var(--muted); font-size:12px;
+                  cursor:pointer; text-align:center; }
+    .floor-tab.active { background:var(--accent); color:#000; font-weight:700; border-color:var(--accent); }
+    #indoor-instruction { background:var(--surface); border-radius:12px; padding:16px;
+                          font-size:16px; line-height:1.5; min-height:60px; margin:12px 0; }
+    #indoor-step-counter { color:var(--muted); font-size:13px; margin-bottom:8px; }
+    .indoor-action-icon { font-size:28px; text-align:center; margin-bottom:8px; }
+    #indoor-progress { width:100%; height:6px; background:var(--border); border-radius:3px; margin:8px 0; }
+    #indoor-progress-bar { height:100%; width:0%; background:var(--accent2); border-radius:3px; transition:width 0.4s; }
+    .indoor-nav-btns { display:flex; gap:10px; margin-top:12px; }
+    .btn-indoor-next { flex:1; background:var(--accent2); color:#000; font-weight:700; }
+    .btn-indoor-prev { flex:1; background:var(--surface); color:var(--text); border:1px solid var(--border); }
+    .indoor-badge { background:var(--accent); color:#000; font-size:11px; font-weight:700;
+                    padding:2px 8px; border-radius:20px; display:inline-block; margin-bottom:8px; }
+
+
+    /* ── INDOOR NAVIGATION ──────────────────────────────── */
+    #indoor-panel { display:none; position:fixed; bottom:0; left:0; right:0;
+                    background:var(--card); border-top:1px solid var(--border);
+                    border-radius:20px 20px 0 0; padding:20px; z-index:3000;
+                    max-height:60vh; overflow-y:auto; }
+    .indoor-room-btn { width:100%; padding:14px 16px; margin-bottom:10px;
+                       background:var(--surface); border:1px solid var(--border);
+                       color:var(--text); border-radius:10px; font-size:14px;
+                       text-align:left; cursor:pointer; }
+    .indoor-room-btn:active { background:var(--accent); color:#000; }
+    #indoor-nav-card { display:none; background:var(--card); border-radius:var(--radius);
+                       padding:20px; margin:12px; border:1px solid var(--accent); }
+    #indoor-instruction { font-size:15px; line-height:1.6; color:var(--text);
+                          margin:12px 0; min-height:80px; }
+    .indoor-controls { display:flex; gap:10px; margin-top:14px; }
+    .indoor-btn { flex:1; padding:12px; border:none; border-radius:10px;
+                  font-size:14px; cursor:pointer; font-weight:600; }
+    .indoor-btn-prev  { background:var(--surface); color:var(--muted); border:1px solid var(--border); }
+    .indoor-btn-next  { background:var(--accent); color:#000; }
+    .indoor-btn-rep   { background:var(--surface); color:var(--accent); border:1px solid var(--accent); }
+    .indoor-btn-close { background:transparent; color:var(--danger); border:1px solid var(--danger); }
+    #indoor-step-count { color:var(--muted); font-size:12px; margin-top:8px; }
 
   </style>
 </head>
@@ -300,6 +344,10 @@
           📍 Use My Current Location
         </button>
 
+        <button class="gps-locate-btn" id="indoor-nav-btn" onclick="openIndoorNav()" style="background:linear-gradient(135deg,#f97316,#facc15); color:#000; margin-top:4px;">
+          🏢 Indoor Navigation (Admin Block)
+        </button>
+
         <button class="gps-locate-btn" id="qr-scan-btn" onclick="openQRScanner()" style="background:linear-gradient(135deg,#7b2ff7,#00d4ff); margin-top:4px;">
           📷 Scan QR Code to Set Location
         </button>
@@ -320,6 +368,39 @@
         </button>
       </div>
 
+      <!-- INDOOR NAV CARD -->
+      <div class="card" id="indoor-card">
+        <div class="card-label">🏢 Indoor Navigation — Admin Block</div>
+        <div class="indoor-badge" id="indoor-floor-badge">Ground Floor</div>
+
+        <div class="field">
+          <label>📍 Starting Point</label>
+          <select id="indoor-start-select"><option value="">— Select —</option></select>
+        </div>
+        <div class="field">
+          <label>🏁 Destination</label>
+          <select id="indoor-dest-select"><option value="">— Select —</option></select>
+        </div>
+        <button class="btn btn-primary" id="indoor-start-btn" onclick="startIndoorNav()" disabled style="margin-bottom:12px;">
+          <span>🚶</span> Start Indoor Navigation
+        </button>
+
+        <!-- Step guidance (hidden until started) -->
+        <div id="indoor-guidance" style="display:none;">
+          <div id="indoor-step-counter">Step 1 of 5</div>
+          <div id="indoor-progress"><div id="indoor-progress-bar"></div></div>
+          <div class="indoor-action-icon" id="indoor-action-icon">🚶</div>
+          <div id="indoor-instruction">Walk forward.</div>
+          <div class="indoor-nav-btns">
+            <button class="btn btn-indoor-prev" onclick="indoorPrevStep()">◀ Previous</button>
+            <button class="btn btn-indoor-next btn" onclick="indoorNextStep()">Next ▶</button>
+          </div>
+          <button class="btn btn-stop" onclick="stopIndoorNav()" style="margin-top:8px;display:flex;width:100%;">✕ Stop Indoor Nav</button>
+        </div>
+
+        <button class="btn btn-stop" id="indoor-back-btn" onclick="stopIndoorNav()" style="margin-top:8px;display:flex;">← Back</button>
+      </div>
+
       <!-- ARRIVED CARD -->
       <div class="card" id="arrived-card" style="display:none;">
         <div id="arrived-box">
@@ -327,6 +408,7 @@
           <h2>You have arrived!</h2>
           <p id="arrived-name">Destination reached.</p>
         </div>
+        <button class="btn btn-primary" style="margin-bottom:8px" onclick="openIndoorNav('admin_block', 'admin_lift_g')">🏢 Navigate Inside Admin Block</button>
         <button class="btn btn-stop" id="stop-btn" onclick="stopNavigation()"
                 style="display:flex; margin-top:16px;">🔄 New Navigation</button>
       </div>
@@ -337,6 +419,30 @@
                 style="display:flex; width:100%;">✕ Stop Navigation</button>
       </div>
 
+
+      <!-- INDOOR NAVIGATION CARD -->
+      <div id="indoor-nav-card">
+        <div class="card-label">🏢 Indoor Navigation</div>
+        <div style="color:var(--accent);font-size:13px;margin-top:4px;">→ <span id="indoor-destination"></span></div>
+        <div id="indoor-instruction">Loading...</div>
+        <div id="indoor-step-count"></div>
+        <div class="indoor-controls">
+          <button class="indoor-btn indoor-btn-prev" onclick="indoorPrevStep()">◀ Back</button>
+          <button class="indoor-btn indoor-btn-rep"  onclick="indoorRepeat()">🔊 Repeat</button>
+          <button class="indoor-btn indoor-btn-next" id="indoor-next-btn" onclick="indoorNextStep()">Next ▶</button>
+        </div>
+        <div class="indoor-controls" style="margin-top:8px;">
+          <button class="indoor-btn indoor-btn-close" style="flex:1" onclick="closeIndoorNav()">✕ Exit Indoor Nav</button>
+        </div>
+      </div>
+
+      <!-- INDOOR DESTINATION PICKER -->
+      <div id="indoor-panel">
+        <div class="card-label" style="margin-bottom:12px;">🏢 Select Indoor Destination</div>
+        <div id="indoor-room-list"></div>
+        <button class="indoor-btn indoor-btn-close" style="width:100%;margin-top:8px" onclick="document.getElementById('indoor-panel').style.display='none'">Cancel</button>
+      </div>
+
     </div>
   </div>
 
@@ -344,12 +450,12 @@
   <div id="qr-overlay">
     <div style="color:var(--accent);font-size:20px;font-weight:700;margin-bottom:16px;">📷 QR Code Scanner</div>
     <div id="qr-frame">
-      <video id="qr-video" playsinline autoplay muted></video>
+      <video id="qr-video" playsinline autoplay muted webkit-playsinline style="width:100%;border-radius:12px;background:#000;min-height:200px;"></video>
       <div id="qr-guide"></div>
     </div>
     <canvas id="qr-canvas"></canvas>
     <div id="qr-indicator"><div id="qr-indicator-bar"></div></div>
-    <div id="qr-status">Initializing camera...</div>
+    <div id="qr-status">📷 Starting camera...</div>
     <div id="qr-hint">Hold phone steady and point camera at QR code</div>
     <button id="qr-close" onclick="closeQRScanner()">✕ Close Scanner</button>
   </div>
