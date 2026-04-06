@@ -1058,13 +1058,70 @@ async function selectIndoorDest(destId, destName) {
     if (data.found) {
       indoorSteps   = data.steps;
       indoorStepIdx = 0;
-      renderCurrentStep(destName);
+
+      // If route uses stairs, show a prominent modal warning first
+      if (data.uses_stairs && data.has_lift_alternative) {
+        showStairsWarning(destId, destName);
+      } else {
+        renderCurrentStep(destName);
+      }
     } else {
       speak("Sorry, no route found to " + destName);
     }
   } catch(e) {
     speak("Could not get directions. Please try again.");
   }
+}
+
+function showStairsWarning(destId, destName) {
+  renderIndoorPanel(`
+    <div style="text-align:center;padding:8px 0 16px;">
+      <div style="font-size:40px;margin-bottom:8px;">⚠️</div>
+      <div style="font-size:17px;font-weight:700;color:#ffb800;margin-bottom:8px;">Staircase on this route</div>
+      <div style="font-size:13px;color:#7a8dab;line-height:1.6;margin-bottom:20px;">
+        The route to <b style="color:#e8f0fe;">${destName}</b> uses a staircase.<br>
+        If you have difficulty using stairs, we recommend taking the <b style="color:#00d4ff;">lift</b> instead.
+      </div>
+      <button class="ind-btn" style="margin-bottom:10px;background:linear-gradient(135deg,#00d4ff20,#00d4ff40);
+              border-color:#00d4ff;color:#00d4ff;font-weight:700;font-size:15px;"
+              onclick="rerouteViaLift('${destId}','${destName.replace(/'/g,"\\'")}')">
+        🛗 Use Lift Instead (Recommended)
+      </button>
+      <button class="ind-btn" style="margin-bottom:10px;color:#ffb800;border-color:#ffb800;"
+              onclick="proceedWithStairs('${destName.replace(/'/g,"\\'")}')">
+        🚶 I can use stairs — Continue
+      </button>
+      <button class="ind-cancel" onclick="closeIndoorPanel()">✕ Cancel</button>
+    </div>
+  `);
+  speak("Warning. This route uses a staircase. Would you like to use the lift instead? It is safer and recommended.");
+}
+
+async function rerouteViaLift(destId, destName) {
+  speak("Rerouting via lift. No stairs on this path.");
+  try {
+    const res = await fetch("/indoor/route", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({start: indoorStart, destination: destId, use_lift: true})
+    });
+    const data = await res.json();
+    if (data.found) {
+      indoorSteps   = data.steps;
+      indoorStepIdx = 0;
+      renderCurrentStep(destName);
+    } else {
+      speak("Sorry, no lift-only route available. Showing original route.");
+      renderCurrentStep(destName);
+    }
+  } catch(e) {
+    speak("Could not get lift route. Showing original.");
+    renderCurrentStep(destName);
+  }
+}
+
+function proceedWithStairs(destName) {
+  speak("Okay. Proceeding with stairs. Please hold the handrail and walk carefully.");
+  renderCurrentStep(destName);
 }
 
 function renderCurrentStep(destName) {
