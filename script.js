@@ -50,15 +50,11 @@ let totalSteps      = 0;
 let currentStep     = 0;
 let destName        = "";
 let allLocations    = [];
-let lastInstruction = "";
-let lastSpokenStep  = -1;
-let lastSpokenDist  = -1;
-let spokenMilestones = new Set();
 
 let lastLat     = null;
 let lastLng     = null;
 let userHeading = -1;
-let compassHeading = -1;  // from device orientation sensor
+let compassHeading = -1;
 
 // Use phone compass if available (works even when standing still)
 function startCompass() {
@@ -494,7 +490,7 @@ function toggleVoiceFlow() {
 }
 function setGpsStatus(state, msg) {
   document.getElementById("gps-dot").className = "gps-dot " + state;
-  document.getElementById("gps-text").innerText = msg;
+  document.getElementById("gps-text").innerHTML = msg;
 }
 function checkStartReady() {
   const s = document.getElementById("start-select").value;
@@ -558,8 +554,9 @@ async function startNavigation() {
     routeNodeIds = data.route;
     roadGeometry = data.road_geometry || [];
     lastLat = null; lastLng = null; userHeading = -1;
-    lastInstruction = ""; lastSpokenStep = -1; lastSpokenDist = -1;
-    spokenMilestones = new Set();
+    lastSpokenInstruction = ""; lastSpokenAnnounceType = "";
+    lastSpokenDist = -1; lastStepSpoken = -1;
+    preWarnSpoken = new Set(); continueSpokenAt = -1;
 
     // Draw full route on map
     drawRoute(routeNodeIds, 0);
@@ -584,66 +581,169 @@ async function startNavigation() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  SEND GPS TO SERVER                                                 */
+/*  SEND GPS TO SERVER  — Google Maps-grade client                    */
 /* ------------------------------------------------------------------ */
 
-async function sendLocation(position) {
-  const lat = position.coords.latitude;
-  const lng = position.coords.longitude;
+// Tracking state for smart speech deduplication
+let lastSpokenInstruction = "";
+let lastSpokenAnnounceType = "";
+let lastSpokenDist = -1;
+let lastStepSpoken = -1;
+let preWarnSpoken  = new Set();   // keys of upcoming warnings already spoken
+let continueSpokenAt = -1;        // dist at which we last spoke a "continue"
 
-  // Update heading from movement only if compass not available
+async function sendLocation(position) {
+  const lat      = position.coords.latitude;
+  const lng      = position.coords.longitude;
+  const accuracy = Math.round(position.coords.accuracy || 999);
+
+  // ── Heading: compass first, then GPS movement ──────────────────────
   if (lastLat !== null && lastLng !== null) {
-    const dist = Math.sqrt(Math.pow((lat-lastLat)*111000,2)+Math.pow((lng-lastLng)*111000*Math.cos(lat*Math.PI/180),2));
-    if (dist > 3 && compassHeading < 0) userHeading = computeHeading(lastLat, lastLng, lat, lng);
+    const dLat = (lat - lastLat) * 111000;
+    const dLng = (lng - lastLng) * 111000 * Math.cos(lat * Math.PI / 180);
+    const moveDist = Math.sqrt(dLat * dLat + dLng * dLng);
+    if (moveDist > 2.5 && compassHeading < 0) {
+      userHeading = computeHeading(lastLat, lastLng, lat, lng);
+    }
   }
   lastLat = lat; lastLng = lng;
 
-  // Update arrow on map
+  // ── Arrow marker ───────────────────────────────────────────────────
   updateArrowMarker(lat, lng, userHeading);
-  setGpsStatus("active","GPS active · Tracking" + (userHeading>=0 ? " · "+Math.round(userHeading)+"°":""));
+
+  // ── GPS accuracy badge ─────────────────────────────────────────────
+  const accColor = accuracy < 15 ? "#00ff9d" : accuracy < 35 ? "#ffb800" : "#ff4d6d";
+  const accLabel = accuracy < 15 ? "GPS: High" : accuracy < 35 ? "GPS: Medium" : "GPS: Low";
+  setGpsStatus("active",
+    `Tracking · ${userHeading >= 0 ? Math.round(userHeading) + "°" : "no heading"} · `
+    + `<span style="color:${accColor}">${accLabel} (±${accuracy}m)</span>`
+  );
 
   try {
-    const res  = await fetch("/update_location", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({session_id,lat,lng,heading:userHeading}) });
+    const res  = await fetch("/update_location", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        session_id: session_id,
+        lat, lng,
+        heading:  userHeading,
+        accuracy: accuracy
+      })
+    });
     const data = await res.json();
-    if (data.error) { setGpsStatus("error","Session error."); return; }
+    if (data.error) { setGpsStatus("error", "Session error."); return; }
     if (data.instruction === "Navigation complete.") { showArrived(); return; }
 
-    const instruction = data.instruction;
-    const distance    = Math.round(data.distance);
-    const step        = data.step ?? currentStep;
+    const instruction  = data.instruction;
+    const distance     = Math.round(data.distance);
+    const step         = data.step ?? currentStep;
+    const announceType = data.announce_type || "continue";
 
-    // Redraw route to update completed/remaining split
+    // ── Redraw route on step change ────────────────────────────────
     if (step !== currentStep) {
       currentStep = step;
       drawRoute(routeNodeIds, step);
     }
 
-    // Speak on step change only
-    if (step !== lastSpokenStep) {
-      speak(instruction);
-      lastInstruction = instruction; lastSpokenStep = step;
-      lastSpokenDist = distance; spokenMilestones = new Set();
-    }
+    // ── Smart speech logic ─────────────────────────────────────────
+    //
+    // Google Maps rules implemented:
+    //  1. Speak immediately on every new TURN instruction
+    //  2. Pre-warn upcoming turns once when 60 m away, once when 20 m away
+    //  3. "Continue" only spoken every 100 m (not every GPS tick)
+    //  4. Arrival spoken once
+    //  5. Never repeat same instruction twice in a row
 
-    // Speak at distance milestones (80, 50, 30, 15m) once per step
-    for (const m of [80, 50, 30, 15]) {
-      if (distance <= m && !spokenMilestones.has(m)) {
-        spokenMilestones.add(m);
-        if (Math.abs(distance - lastSpokenDist) > 3) {
-          speak("In " + distance + " meters, " + instruction.toLowerCase());
-          lastSpokenDist = distance;
-        }
-        break;
+    const instrKey = announceType + "|" + instruction;
+
+    if (announceType === "current") {
+      // New turn at this waypoint — speak immediately if not already spoken
+      if (instrKey !== lastSpokenInstruction) {
+        speakNav(instruction);
+        lastSpokenInstruction  = instrKey;
+        lastSpokenAnnounceType = announceType;
+        preWarnSpoken          = new Set();   // reset pre-warns for new segment
+        continueSpokenAt       = -1;
+      }
+
+    } else if (announceType === "upcoming") {
+      // Pre-turn warning — speak at ~60 m and again at ~20 m
+      const warnKey60 = instrKey + "|60";
+      const warnKey20 = instrKey + "|20";
+      if (distance <= 65 && distance > 30 && !preWarnSpoken.has(warnKey60)) {
+        preWarnSpoken.add(warnKey60);
+        speakNav(instruction);
+        lastSpokenInstruction = instrKey;
+      } else if (distance <= 25 && !preWarnSpoken.has(warnKey20)) {
+        preWarnSpoken.add(warnKey20);
+        speakNav(instruction);
+        lastSpokenInstruction = instrKey;
+      }
+
+    } else {
+      // "continue" — speak once when step changes, then every ~100 m
+      if (step !== lastStepSpoken) {
+        lastStepSpoken   = step;
+        continueSpokenAt = distance;
+        speakNav(instruction);
+        lastSpokenInstruction = instrKey;
+      } else if (continueSpokenAt > 0 && continueSpokenAt - distance >= 100) {
+        continueSpokenAt = distance;
+        speakNav(instruction);
+        lastSpokenInstruction = instrKey;
       }
     }
 
-    // Update banner UI
+    // ── Update UI banner ───────────────────────────────────────────
     document.getElementById("instruction-text").innerText = instruction;
     document.getElementById("banner-distance").innerText  = distance + " m";
     document.getElementById("step-badge").innerText       = "STEP " + (step + 1);
     updateProgress(step);
 
-  } catch(e) { setGpsStatus("error","Connection lost. Retrying..."); }
+    // ── Bearing arrow overlay (visual direction indicator) ─────────
+    updateBearingOverlay(data.target_bearing, userHeading);
+
+  } catch(e) {
+    setGpsStatus("error", "Connection lost. Retrying...");
+  }
+}
+
+/* ── Speak wrapper — always cancels previous before speaking ───────── */
+function speakNav(text) {
+  if (!document.getElementById("voice-toggle")?.checked) return;
+  window.speechSynthesis && window.speechSynthesis.cancel();
+  const utt  = new SpeechSynthesisUtterance(text);
+  utt.lang   = "en-IN";
+  utt.rate   = 0.95;
+  utt.pitch  = 1.0;
+  window.speechSynthesis && window.speechSynthesis.speak(utt);
+}
+
+/* ── Visual bearing overlay: small arrow showing target direction ──── */
+function updateBearingOverlay(targetBear, userHead) {
+  let el = document.getElementById("bearing-overlay");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "bearing-overlay";
+    el.style.cssText = `
+      position:fixed; bottom:160px; right:14px; width:48px; height:48px;
+      background:rgba(13,25,41,0.88); border:2px solid #00d4ff;
+      border-radius:50%; display:flex; align-items:center; justify-content:center;
+      z-index:2000; font-size:22px; transition:transform 0.3s;
+      box-shadow:0 2px 12px rgba(0,212,255,0.25);
+    `;
+    document.body.appendChild(el);
+  }
+  if (targetBear >= 0 && userHead >= 0) {
+    const rel = (targetBear - userHead + 360) % 360;
+    el.style.transform = `rotate(${rel}deg)`;
+    el.innerHTML = "↑";
+    el.style.color = "#00d4ff";
+  } else if (targetBear >= 0) {
+    el.innerHTML = "↑";
+    el.style.color = "#ffb800";
+    el.style.transform = "none";
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -682,8 +782,12 @@ function showArrived() {
 
 function stopNavigation() {
   if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
-  session_id = null; lastInstruction = ""; userHeading = -1; compassHeading = -1; lastLat = null; lastLng = null;
-  lastSpokenStep = -1; spokenMilestones = new Set(); routeNodeIds = [];
+  session_id = null; lastSpokenInstruction = ""; userHeading = -1;
+  compassHeading = -1; lastLat = null; lastLng = null;
+  lastStepSpoken = -1; preWarnSpoken = new Set(); continueSpokenAt = -1;
+  routeNodeIds = [];
+  const bo = document.getElementById("bearing-overlay");
+  if (bo) bo.remove();
 
   // Clear map overlays
   if (routeRemaining) { map.removeLayer(routeRemaining); routeRemaining = null; }
