@@ -34,7 +34,7 @@
       "floor": 2
     },
     "indoor_nwlab": {
-      "name": "NW Lab",
+      "name": "Networking Lab",
       "floor": 2
     },
     "indoor_powerelec": {
@@ -42,7 +42,7 @@
       "floor": 2
     },
     "indoor_hod": {
-      "name": "HOD Cabin",
+      "name": "Head Of Department Cabin",
       "floor": 2
     },
     "indoor_analoglab": {
@@ -87,19 +87,19 @@
     "indoor_lift_ground→indoor_lift_first": [
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor."
+      "You are now on the First Floor."
     ],
     "indoor_lift_ground→indoor_refsection": [
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn right towards the south-west and walk 5 steps.",
       "Reference Section is here. You have arrived."
     ],
     "indoor_lift_ground→indoor_ab104": [
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived."
@@ -107,7 +107,7 @@
     "indoor_lift_ground→indoor_stairs_mid": [
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived.",
@@ -118,20 +118,20 @@
     "indoor_lift_ground→indoor_lift_second": [
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor."
+      "You are now on the Second Floor."
     ],
     "indoor_lift_ground→indoor_nwlab": [
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
-      "NW Lab is on your right. You have arrived."
+      "Networking Lab is on your right. You have arrived."
     ],
     "indoor_lift_ground→indoor_powerelec": [
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
       "NW Lab is on your right. You have arrived.",
@@ -145,7 +145,7 @@
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
       "NW Lab is on your right. You have arrived.",
-      "From NW Lab, continue west for 16 steps.",
+      "From Networking Lab, continue west for 16 steps.",
       "Power Electronics Lab is on your left. You have arrived.",
       "From Power Electronics Lab, continue west for 3 more steps.",
       "HOD Cabin is on your right. You have arrived."
@@ -153,7 +153,7 @@
     "indoor_lift_ground→indoor_analoglab": [
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the north-east and walk 17 steps.",
       "Turn north and walk 4 steps.",
       "Analog Electronics Lab is here. You have arrived."
@@ -161,7 +161,7 @@
     "indoor_lift_ground→indoor_digitallab": [
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the north-east and walk 17 steps.",
       "Turn north and walk 4 steps.",
       "Analog Electronics Lab is here. You have arrived.",
@@ -171,7 +171,7 @@
     "indoor_lift_ground→indoor_commlab": [
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      " You are now on the Second Floor.",
       "Turn towards the north-east and walk 17 steps.",
       "Turn north and walk 4 steps.",
       "Analog Electronics Lab is here. You have arrived.",
@@ -183,7 +183,7 @@
     "indoor_lift_ground→indoor_ab203": [
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the north-east and walk 17 steps.",
       "Turn north and walk 4 steps.",
       "Analog Electronics Lab is here. You have arrived.",
@@ -240,7 +240,7 @@
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor."
+      "You are now on the First Floor."
     ],
     "indoor_admin_exit→indoor_refsection": [
       "Climb up 2 stairs into the Admin Block.",
@@ -248,7 +248,7 @@
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn right towards the south-west and walk 5 steps.",
       "Reference Section is here. You have arrived."
     ],
@@ -258,7 +258,7 @@
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived."
@@ -280,7 +280,7 @@
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor."
+      "You are now on the Second Floor."
     ],
     "indoor_admin_exit→indoor_nwlab": [
       "Climb up 2 stairs into the Admin Block.",
@@ -288,7 +288,7 @@
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
       "NW Lab is on your right. You have arrived."
@@ -299,7 +299,7 @@
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
       "NW Lab is on your right. You have arrived.",
@@ -312,7 +312,7 @@
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
       "NW Lab is on your right. You have arrived.",
@@ -327,7 +327,7 @@
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the north-east and walk 17 steps.",
       "Turn north and walk 4 steps.",
       "Analog Electronics Lab is here. You have arrived."
@@ -338,7 +338,7 @@
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the north-east and walk 17 steps.",
       "Turn north and walk 4 steps.",
       "Analog Electronics Lab is here. You have arrived.",
@@ -351,7 +351,7 @@
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the north-east and walk 17 steps.",
       "Turn north and walk 4 steps.",
       "Analog Electronics Lab is here. You have arrived.",
@@ -470,7 +470,7 @@
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor."
+      "You are now on the Second Floor."
     ],
     "indoor_stairs_ground→indoor_nwlab": [
       "From the ground floor staircase landing, walk east for 10 steps.",
@@ -481,7 +481,7 @@
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
       "NW Lab is on your right. You have arrived."
@@ -495,11 +495,11 @@
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
       "NW Lab is on your right. You have arrived.",
-      "From NW Lab, continue west for 16 steps.",
+      "From Networking Lab, continue west for 16 steps.",
       "Power Electronics Lab is on your left. You have arrived."
     ],
     "indoor_stairs_ground→indoor_hod": [
@@ -511,11 +511,11 @@
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
       "NW Lab is on your right. You have arrived.",
-      "From NW Lab, continue west for 16 steps.",
+      "From Networking Lab, continue west for 16 steps.",
       "Power Electronics Lab is on your left. You have arrived.",
       "From Power Electronics Lab, continue west for 3 more steps.",
       "HOD Cabin is on your right. You have arrived."
@@ -529,7 +529,7 @@
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the north-east and walk 17 steps.",
       "Turn north and walk 4 steps.",
       "Analog Electronics Lab is here. You have arrived."
@@ -597,12 +597,12 @@
     "indoor_lift_first→indoor_lift_ground": [
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor."
+      "You are now on the Ground Floor."
     ],
     "indoor_lift_first→indoor_admin_exit": [
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor.",
+      "You are now on the Ground Floor.",
       "Walk straight ahead with a slight left for about 30 steps.",
       "Carefully step down 2 stairs.",
       "You are now at the Admin Block outdoor entrance."
@@ -610,7 +610,7 @@
     "indoor_lift_first→indoor_stairs_ground": [
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor.",
+      "You are now on the Ground Floor.",
       "Walk straight ahead with a slight left for about 30 steps.",
       "Carefully step down 2 stairs.",
       "You are now at the Admin Block outdoor entrance.",
@@ -638,12 +638,12 @@
     "indoor_lift_first→indoor_lift_second": [
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor."
+      "You are now on the Second Floor."
     ],
     "indoor_lift_first→indoor_nwlab": [
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
       "NW Lab is on your right. You have arrived."
@@ -651,7 +651,7 @@
     "indoor_lift_first→indoor_powerelec": [
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
       "NW Lab is on your right. You have arrived.",
@@ -661,7 +661,7 @@
     "indoor_lift_first→indoor_hod": [
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
       "NW Lab is on your right. You have arrived.",
@@ -673,7 +673,7 @@
     "indoor_lift_first→indoor_analoglab": [
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the north-east and walk 17 steps.",
       "Turn north and walk 4 steps.",
       "Analog Electronics Lab is here. You have arrived."
@@ -681,7 +681,7 @@
     "indoor_lift_first→indoor_digitallab": [
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the north-east and walk 17 steps.",
       "Turn north and walk 4 steps.",
       "Analog Electronics Lab is here. You have arrived.",
@@ -691,7 +691,7 @@
     "indoor_lift_first→indoor_commlab": [
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the north-east and walk 17 steps.",
       "Turn north and walk 4 steps.",
       "Analog Electronics Lab is here. You have arrived.",
@@ -703,7 +703,7 @@
     "indoor_lift_first→indoor_ab203": [
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the north-east and walk 17 steps.",
       "Turn north and walk 4 steps.",
       "Analog Electronics Lab is here. You have arrived.",
@@ -749,14 +749,14 @@
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor."
+      "You are now on the Ground Floor."
     ],
     "indoor_refsection→indoor_admin_exit": [
       "From Reference Section, turn left towards the north-east and walk 5 steps.",
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor.",
+      "You are now on the Ground Floor.",
       "Walk straight ahead with a slight left for about 30 steps.",
       "Carefully step down 2 stairs.",
       "You are now at the Admin Block outdoor entrance."
@@ -766,7 +766,7 @@
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor.",
+      "You are now on the Ground Floor.",
       "Walk straight ahead with a slight left for about 30 steps.",
       "Carefully step down 2 stairs.",
       "You are now at the Admin Block outdoor entrance.",
@@ -800,14 +800,14 @@
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor."
+      "You are now on the Second Floor."
     ],
     "indoor_refsection→indoor_nwlab": [
       "From Reference Section, turn left towards the north-east and walk 5 steps.",
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
       "NW Lab is on your right. You have arrived."
@@ -817,7 +817,7 @@
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
       "NW Lab is on your right. You have arrived.",
@@ -829,7 +829,7 @@
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
       "NW Lab is on your right. You have arrived.",
@@ -843,7 +843,7 @@
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the north-east and walk 17 steps.",
       "Turn north and walk 4 steps.",
       "Analog Electronics Lab is here. You have arrived."
@@ -853,7 +853,7 @@
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the north-east and walk 17 steps.",
       "Turn north and walk 4 steps.",
       "Analog Electronics Lab is here. You have arrived.",
@@ -865,7 +865,7 @@
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the north-east and walk 17 steps.",
       "Turn north and walk 4 steps.",
       "Analog Electronics Lab is here. You have arrived.",
@@ -879,7 +879,7 @@
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the north-east and walk 17 steps.",
       "Turn north and walk 4 steps.",
       "Analog Electronics Lab is here. You have arrived.",
@@ -930,7 +930,7 @@
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor."
+      "You are now on the Ground Floor."
     ],
     "indoor_ab104→indoor_admin_exit": [
       "From AB104, face south and walk 50 steps.",
@@ -938,7 +938,7 @@
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor.",
+      "You are now on the Ground Floor.",
       "Walk straight ahead with a slight left for about 30 steps.",
       "Carefully step down 2 stairs.",
       "You are now at the Admin Block outdoor entrance."
@@ -977,7 +977,7 @@
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor."
+      "You are now on the Second Floor."
     ],
     "indoor_ab104→indoor_nwlab": [
       "From AB104, face south and walk 50 steps.",
@@ -985,7 +985,7 @@
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
       "NW Lab is on your right. You have arrived."
@@ -996,7 +996,7 @@
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
       "NW Lab is on your right. You have arrived.",
@@ -1009,7 +1009,7 @@
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
       "NW Lab is on your right. You have arrived.",
@@ -1024,7 +1024,7 @@
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the north-east and walk 17 steps.",
       "Turn north and walk 4 steps.",
       "Analog Electronics Lab is here. You have arrived."
@@ -1035,7 +1035,7 @@
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the north-east and walk 17 steps.",
       "Turn north and walk 4 steps.",
       "Analog Electronics Lab is here. You have arrived.",
@@ -1048,7 +1048,7 @@
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the north-east and walk 17 steps.",
       "Turn north and walk 4 steps.",
       "Analog Electronics Lab is here. You have arrived.",
@@ -1161,7 +1161,7 @@
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor."
+      "You are now on the Second Floor."
     ],
     "indoor_stairs_mid→indoor_nwlab": [
       "From the first floor staircase, turn west and walk 10 steps.",
@@ -1172,7 +1172,7 @@
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
       "NW Lab is on your right. You have arrived."
@@ -1186,7 +1186,7 @@
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
       "NW Lab is on your right. You have arrived.",
@@ -1202,7 +1202,7 @@
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
       "NW Lab is on your right. You have arrived.",
@@ -1220,7 +1220,7 @@
       "You have arrived at the First Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
-      "📢 You are now on the Second Floor.",
+      "You are now on the Second Floor.",
       "Turn towards the north-east and walk 17 steps.",
       "Turn north and walk 4 steps.",
       "Analog Electronics Lab is here. You have arrived."
@@ -1288,12 +1288,12 @@
     "indoor_lift_second→indoor_lift_ground": [
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor."
+      "You are now on the Ground Floor."
     ],
     "indoor_lift_second→indoor_admin_exit": [
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor.",
+      "You are now on the Ground Floor.",
       "Walk straight ahead with a slight left for about 30 steps.",
       "Carefully step down 2 stairs.",
       "You are now at the Admin Block outdoor entrance."
@@ -1301,7 +1301,7 @@
     "indoor_lift_second→indoor_stairs_ground": [
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor.",
+      "You are now on the Ground Floor.",
       "Walk straight ahead with a slight left for about 30 steps.",
       "Carefully step down 2 stairs.",
       "You are now at the Admin Block outdoor entrance.",
@@ -1312,19 +1312,19 @@
     "indoor_lift_second→indoor_lift_first": [
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor."
+      "You are now on the First Floor."
     ],
     "indoor_lift_second→indoor_refsection": [
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn right towards the south-west and walk 5 steps.",
       "Reference Section is here. You have arrived."
     ],
     "indoor_lift_second→indoor_ab104": [
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived."
@@ -1332,7 +1332,7 @@
     "indoor_lift_second→indoor_stairs_mid": [
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived.",
@@ -1355,8 +1355,8 @@
     "indoor_lift_second→indoor_hod": [
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, continue west for 16 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, continue west for 16 steps.",
       "Power Electronics Lab is on your left. You have arrived.",
       "From Power Electronics Lab, continue west for 3 more steps.",
       "HOD Cabin is on your right. You have arrived."
@@ -1400,7 +1400,7 @@
       "💡 TIP: You can say 'take the lift' or 'use lift' for a lift-only route.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived.",
@@ -1419,7 +1419,7 @@
       "💡 TIP: You can say 'take the lift' or 'use lift' for a lift-only route.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived.",
@@ -1430,31 +1430,31 @@
       "Climb up one floor to the second floor landing."
     ],
     "indoor_nwlab→indoor_lift_ground": [
-      "From NW Lab, turn east and walk 13 steps.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor."
+      "You are now on the Ground Floor."
     ],
     "indoor_nwlab→indoor_admin_exit": [
-      "From NW Lab, turn east and walk 13 steps.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor.",
+      "You are now on the Ground Floor.",
       "Walk straight ahead with a slight left for about 30 steps.",
       "Carefully step down 2 stairs.",
       "You are now at the Admin Block outdoor entrance."
     ],
     "indoor_nwlab→indoor_stairs_ground": [
-      "From NW Lab, turn east and walk 13 steps.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor.",
+      "You are now on the Ground Floor.",
       "Walk straight ahead with a slight left for about 30 steps.",
       "Carefully step down 2 stairs.",
       "You are now at the Admin Block outdoor entrance.",
@@ -1463,41 +1463,41 @@
       "You have reached the ground floor staircase."
     ],
     "indoor_nwlab→indoor_lift_first": [
-      "From NW Lab, turn east and walk 13 steps.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor."
+      "You are now on the First Floor."
     ],
     "indoor_nwlab→indoor_refsection": [
-      "From NW Lab, turn east and walk 13 steps.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn right towards the south-west and walk 5 steps.",
       "Reference Section is here. You have arrived."
     ],
     "indoor_nwlab→indoor_ab104": [
-      "From NW Lab, turn east and walk 13 steps.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived."
     ],
     "indoor_nwlab→indoor_stairs_mid": [
-      "From NW Lab, turn east and walk 13 steps.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived.",
@@ -1506,22 +1506,22 @@
       "Make a U-turn. The staircase is right here."
     ],
     "indoor_nwlab→indoor_lift_second": [
-      "From NW Lab, turn east and walk 13 steps.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift."
     ],
     "indoor_nwlab→indoor_powerelec": [
-      "From NW Lab, continue west for 16 steps.",
+      "From Networking Lab, continue west for 16 steps.",
       "Power Electronics Lab is on your left. You have arrived."
     ],
     "indoor_nwlab→indoor_hod": [
-      "From NW Lab, continue west for 16 steps.",
+      "From Networking Lab, continue west for 16 steps.",
       "Power Electronics Lab is on your left. You have arrived.",
       "From Power Electronics Lab, continue west for 3 more steps.",
       "HOD Cabin is on your right. You have arrived."
     ],
     "indoor_nwlab→indoor_analoglab": [
-      "From NW Lab, turn east and walk 13 steps.",
+      "From networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Turn towards the north-east and walk 17 steps.",
@@ -1529,7 +1529,7 @@
       "Analog Electronics Lab is here. You have arrived."
     ],
     "indoor_nwlab→indoor_digitallab": [
-      "From NW Lab, turn east and walk 13 steps.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Turn towards the north-east and walk 17 steps.",
@@ -1539,7 +1539,7 @@
       "Digital Lab is here. You have arrived."
     ],
     "indoor_nwlab→indoor_commlab": [
-      "From NW Lab, turn east and walk 13 steps.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Turn towards the north-east and walk 17 steps.",
@@ -1551,7 +1551,7 @@
       "Communication Lab is here. You have arrived."
     ],
     "indoor_nwlab→indoor_ab203": [
-      "From NW Lab, turn east and walk 13 steps.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Turn towards the north-east and walk 17 steps.",
@@ -1574,7 +1574,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived.",
@@ -1596,7 +1596,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived.",
@@ -1614,7 +1614,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor."
+      "You are now on the Ground Floor."
     ],
     "indoor_powerelec→indoor_admin_exit": [
       "From Power Electronics Lab, turn east and walk 16 steps.",
@@ -1624,7 +1624,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor.",
+      "You are now on the Ground Floor.",
       "Walk straight ahead with a slight left for about 30 steps.",
       "Carefully step down 2 stairs.",
       "You are now at the Admin Block outdoor entrance."
@@ -1637,7 +1637,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor.",
+      "You are now on the Ground Floor.",
       "Walk straight ahead with a slight left for about 30 steps.",
       "Carefully step down 2 stairs.",
       "You are now at the Admin Block outdoor entrance.",
@@ -1647,18 +1647,18 @@
     ],
     "indoor_powerelec→indoor_lift_first": [
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor."
+      "You are now on the First Floor."
     ],
     "indoor_powerelec→indoor_refsection": [
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
@@ -1669,26 +1669,26 @@
     ],
     "indoor_powerelec→indoor_ab104": [
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived."
     ],
     "indoor_powerelec→indoor_stairs_mid": [
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived.",
@@ -1698,14 +1698,14 @@
     ],
     "indoor_powerelec→indoor_lift_second": [
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift."
     ],
     "indoor_powerelec→indoor_nwlab": [
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived."
+      "Networking Lab is on your right. You have arrived."
     ],
     "indoor_powerelec→indoor_hod": [
       "From Power Electronics Lab, continue west for 3 more steps.",
@@ -1713,8 +1713,8 @@
     ],
     "indoor_powerelec→indoor_analoglab": [
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Turn towards the north-east and walk 17 steps.",
@@ -1723,8 +1723,8 @@
     ],
     "indoor_powerelec→indoor_digitallab": [
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Turn towards the north-east and walk 17 steps.",
@@ -1735,8 +1735,8 @@
     ],
     "indoor_powerelec→indoor_commlab": [
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Turn towards the north-east and walk 17 steps.",
@@ -1749,8 +1749,8 @@
     ],
     "indoor_powerelec→indoor_ab203": [
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Turn towards the north-east and walk 17 steps.",
@@ -1769,13 +1769,13 @@
       "To use the lift, tell the assistant you want the lift route.",
       "💡 TIP: You can say 'take the lift' or 'use lift' for a lift-only route.",
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived.",
@@ -1793,13 +1793,13 @@
       "To use the lift, tell the assistant you want the lift route.",
       "💡 TIP: You can say 'take the lift' or 'use lift' for a lift-only route.",
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived.",
@@ -1813,25 +1813,25 @@
       "From HOD Cabin, turn east and walk 3 steps.",
       "Power Electronics Lab is on your left. You have arrived.",
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor."
+      "You are now on the Ground Floor."
     ],
     "indoor_hod→indoor_admin_exit": [
       "From HOD Cabin, turn east and walk 3 steps.",
       "Power Electronics Lab is on your left. You have arrived.",
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor.",
+      "You are now on the Ground Floor.",
       "Walk straight ahead with a slight left for about 30 steps.",
       "Carefully step down 2 stairs.",
       "You are now at the Admin Block outdoor entrance."
@@ -1840,13 +1840,13 @@
       "From HOD Cabin, turn east and walk 3 steps.",
       "Power Electronics Lab is on your left. You have arrived.",
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor.",
+      "You are now on the Ground Floor.",
       "Walk straight ahead with a slight left for about 30 steps.",
       "Carefully step down 2 stairs.",
       "You are now at the Admin Block outdoor entrance.",
@@ -1858,25 +1858,25 @@
       "From HOD Cabin, turn east and walk 3 steps.",
       "Power Electronics Lab is on your left. You have arrived.",
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor."
+      "You are now on the First Floor."
     ],
     "indoor_hod→indoor_refsection": [
       "From HOD Cabin, turn east and walk 3 steps.",
       "Power Electronics Lab is on your left. You have arrived.",
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn right towards the south-west and walk 5 steps.",
       "Reference Section is here. You have arrived."
     ],
@@ -1884,13 +1884,13 @@
       "From HOD Cabin, turn east and walk 3 steps.",
       "Power Electronics Lab is on your left. You have arrived.",
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived."
@@ -1899,13 +1899,13 @@
       "From HOD Cabin, turn east and walk 3 steps.",
       "Power Electronics Lab is on your left. You have arrived.",
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived.",
@@ -1917,8 +1917,8 @@
       "From HOD Cabin, turn east and walk 3 steps.",
       "Power Electronics Lab is on your left. You have arrived.",
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift."
     ],
@@ -1936,8 +1936,8 @@
       "From HOD Cabin, turn east and walk 3 steps.",
       "Power Electronics Lab is on your left. You have arrived.",
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Turn towards the north-east and walk 17 steps.",
@@ -1948,8 +1948,8 @@
       "From HOD Cabin, turn east and walk 3 steps.",
       "Power Electronics Lab is on your left. You have arrived.",
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Turn towards the north-east and walk 17 steps.",
@@ -1962,8 +1962,8 @@
       "From HOD Cabin, turn east and walk 3 steps.",
       "Power Electronics Lab is on your left. You have arrived.",
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Turn towards the north-east and walk 17 steps.",
@@ -1978,8 +1978,8 @@
       "From HOD Cabin, turn east and walk 3 steps.",
       "Power Electronics Lab is on your left. You have arrived.",
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Turn towards the north-east and walk 17 steps.",
@@ -2000,13 +2000,13 @@
       "From HOD Cabin, turn east and walk 3 steps.",
       "Power Electronics Lab is on your left. You have arrived.",
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived.",
@@ -2026,13 +2026,13 @@
       "From HOD Cabin, turn east and walk 3 steps.",
       "Power Electronics Lab is on your left. You have arrived.",
       "From Power Electronics Lab, turn east and walk 16 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, turn east and walk 13 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, turn east and walk 13 steps.",
       "Turn towards the north-east and walk 8 steps.",
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived.",
@@ -2048,7 +2048,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor."
+      "You are now on the Ground Floor."
     ],
     "indoor_analoglab→indoor_admin_exit": [
       "From Analog Electronics Lab, face south and walk 4 steps.",
@@ -2056,7 +2056,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor.",
+      "You are now on the Ground Floor.",
       "Walk straight ahead with a slight left for about 30 steps.",
       "Carefully step down 2 stairs.",
       "You are now at the Admin Block outdoor entrance."
@@ -2067,7 +2067,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor.",
+      "You are now on the Ground Floor.",
       "Walk straight ahead with a slight left for about 30 steps.",
       "Carefully step down 2 stairs.",
       "You are now at the Admin Block outdoor entrance.",
@@ -2081,7 +2081,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor."
+      "You are now on the First Floor."
     ],
     "indoor_analoglab→indoor_refsection": [
       "From Analog Electronics Lab, face south and walk 4 steps.",
@@ -2089,7 +2089,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn right towards the south-west and walk 5 steps.",
       "Reference Section is here. You have arrived."
     ],
@@ -2099,7 +2099,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived."
@@ -2110,7 +2110,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived.",
@@ -2137,8 +2137,8 @@
       "You have arrived at the Second Floor Lift.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, continue west for 16 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, continue west for 16 steps.",
       "Power Electronics Lab is on your left. You have arrived."
     ],
     "indoor_analoglab→indoor_hod": [
@@ -2147,8 +2147,8 @@
       "You have arrived at the Second Floor Lift.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, continue west for 16 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, continue west for 16 steps.",
       "Power Electronics Lab is on your left. You have arrived.",
       "From Power Electronics Lab, continue west for 3 more steps.",
       "HOD Cabin is on your right. You have arrived."
@@ -2191,7 +2191,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived.",
@@ -2209,7 +2209,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor."
+      "You are now on the Ground Floor."
     ],
     "indoor_digitallab→indoor_admin_exit": [
       "From Digital Lab, face south and walk 29 steps.",
@@ -2219,7 +2219,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor.",
+      "You are now on the Ground Floor.",
       "Walk straight ahead with a slight left for about 30 steps.",
       "Carefully step down 2 stairs.",
       "You are now at the Admin Block outdoor entrance."
@@ -2232,7 +2232,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor.",
+      "You are now on the Ground Floor.",
       "Walk straight ahead with a slight left for about 30 steps.",
       "Carefully step down 2 stairs.",
       "You are now at the Admin Block outdoor entrance.",
@@ -2248,7 +2248,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor."
+      "You are now on the First Floor."
     ],
     "indoor_digitallab→indoor_refsection": [
       "From Digital Lab, face south and walk 29 steps.",
@@ -2258,7 +2258,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn right towards the south-west and walk 5 steps.",
       "Reference Section is here. You have arrived."
     ],
@@ -2270,7 +2270,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived."
@@ -2283,7 +2283,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived.",
@@ -2316,8 +2316,8 @@
       "You have arrived at the Second Floor Lift.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, continue west for 16 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, continue west for 16 steps.",
       "Power Electronics Lab is on your left. You have arrived."
     ],
     "indoor_digitallab→indoor_hod": [
@@ -2328,8 +2328,8 @@
       "You have arrived at the Second Floor Lift.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, continue west for 16 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, continue west for 16 steps.",
       "Power Electronics Lab is on your left. You have arrived.",
       "From Power Electronics Lab, continue west for 3 more steps.",
       "HOD Cabin is on your right. You have arrived."
@@ -2376,7 +2376,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor."
+      "You are now on the Ground Floor."
     ],
     "indoor_commlab→indoor_admin_exit": [
       "From Communication Lab, face south and walk 22 steps.",
@@ -2388,7 +2388,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor.",
+      "You are now on the Ground Floor.",
       "Walk straight ahead with a slight left for about 30 steps.",
       "Carefully step down 2 stairs.",
       "You are now at the Admin Block outdoor entrance."
@@ -2417,7 +2417,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor."
+      "You are now on the First Floor."
     ],
     "indoor_commlab→indoor_refsection": [
       "From Communication Lab, face south and walk 22 steps.",
@@ -2429,7 +2429,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn right towards the south-west and walk 5 steps.",
       "Reference Section is here. You have arrived."
     ],
@@ -2443,7 +2443,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
       "AB104 is here. You have arrived."
@@ -2493,8 +2493,8 @@
       "You have arrived at the Second Floor Lift.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, continue west for 16 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, continue west for 16 steps.",
       "Power Electronics Lab is on your left. You have arrived."
     ],
     "indoor_commlab→indoor_hod": [
@@ -2507,8 +2507,8 @@
       "You have arrived at the Second Floor Lift.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, continue west for 16 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, continue west for 16 steps.",
       "Power Electronics Lab is on your left. You have arrived.",
       "From Power Electronics Lab, continue west for 3 more steps.",
       "HOD Cabin is on your right. You have arrived."
@@ -2553,7 +2553,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the Ground Floor (G).",
       "The lift will stop at the ground floor. Step out carefully.",
-      "📢 You are now on the Ground Floor."
+      "You are now on the Ground Floor."
     ],
     "indoor_ab203→indoor_admin_exit": [
       "⚠️ WARNING: This route uses the staircase.",
@@ -2594,7 +2594,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor."
+      "You are now on the First Floor."
     ],
     "indoor_ab203→indoor_refsection": [
       "From AB203, face south and walk 10 steps.",
@@ -2608,7 +2608,7 @@
       "You have arrived at the Second Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
-      "📢 You are now on the First Floor.",
+      "You are now on the First Floor.",
       "Turn right towards the south-west and walk 5 steps.",
       "Reference Section is here. You have arrived."
     ],
@@ -2676,8 +2676,8 @@
       "You have arrived at the Second Floor Lift.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, continue west for 16 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, continue west for 16 steps.",
       "Power Electronics Lab is on your left. You have arrived."
     ],
     "indoor_ab203→indoor_hod": [
@@ -2692,8 +2692,8 @@
       "You have arrived at the Second Floor Lift.",
       "Turn towards the south-west and walk 8 steps.",
       "Turn west and walk 13 steps.",
-      "NW Lab is on your right. You have arrived.",
-      "From NW Lab, continue west for 16 steps.",
+      "Networking Lab is on your right. You have arrived.",
+      "From Networking Lab, continue west for 16 steps.",
       "Power Electronics Lab is on your left. You have arrived.",
       "From Power Electronics Lab, continue west for 3 more steps.",
       "HOD Cabin is on your right. You have arrived."
