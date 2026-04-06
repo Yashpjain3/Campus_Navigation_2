@@ -781,38 +781,38 @@ async function openQRScanner() {
     }
   }
 
- const video = document.getElementById("qr-video");
+  // Attach stream to video element
+  const video = document.getElementById("qr-video");
+  video.srcObject = qrStream;
+  video.setAttribute("playsinline", "true");
+  video.setAttribute("autoplay", "true");
+  video.muted = true;
 
- video.srcObject = qrStream;
+  // Force play with multiple attempts
+  const playVideo = async () => {
+    try { await video.play(); } catch(e) {}
+  };
 
- // ✅ ensure proper playback
- video.setAttribute("autoplay", true);
- video.setAttribute("muted", true);
- video.setAttribute("playsinline", true);
-
- try {
-   await video.play();
- } catch (e) {
-   console.log("Video play error:", e);
- }
-
- // 🔥 ensure frames are actually loaded
- await new Promise((resolve) => {
-   if (video.readyState >= 2) {
-     resolve();
-   } else {
-     video.onloadeddata = () => resolve();
-   }
- });
-
-console.log("Video ready:", video.videoWidth, video.videoHeight);
-
-  // Wait for video to be ready
+  // Wait for video to actually show frames
   await new Promise((resolve) => {
-    video.onloadedmetadata = resolve;
-    video.play().catch(()=>{});
-    setTimeout(resolve, 3000); // fallback timeout
+    let resolved = false;
+    const done = () => { if (!resolved) { resolved = true; resolve(); } };
+
+    video.onloadedmetadata = () => { playVideo(); };
+    video.oncanplay       = done;
+    video.onplaying       = done;
+
+    playVideo();
+
+    // Hard timeout — proceed anyway after 2.5s
+    setTimeout(done, 2500);
   });
+
+  // Extra check — if video dimensions are 0 try playing again
+  if (!video.videoWidth) {
+    await playVideo();
+    await new Promise(r => setTimeout(r, 500));
+  }
 
   setQRStatus("📷 Camera active — looking for QR code", "Point camera at the QR code");
   speak("Camera ready. Point your camera at the QR code.");
