@@ -317,12 +317,40 @@ def indoor_route():
     data  = request.json
     start = data.get("start", "").strip()
     dest  = data.get("destination", "").strip()
-    key   = start + "→" + dest
+    use_lift = data.get("use_lift", False)   # client can request lift-only
+
+    # If user wants lift-only, try :lift variant first
+    if use_lift:
+        lift_key = start + "→" + dest + ":lift"
+        if lift_key in _indoor["routes"]:
+            return jsonify({
+                "steps": _indoor["routes"][lift_key],
+                "found": True,
+                "uses_stairs": False,
+                "lift_only": True
+            })
+
+    key = start + "→" + dest
     if key in _indoor["routes"]:
-        return jsonify({"steps": _indoor["routes"][key], "found": True})
+        meta = _indoor.get("route_meta", {}).get(key, {})
+        return jsonify({
+            "steps": _indoor["routes"][key],
+            "found": True,
+            "uses_stairs": meta.get("uses_stairs", False),
+            "has_lift_alternative": meta.get("has_lift_alternative", False)
+        })
+
+    # Try reverse
     rev = dest + "→" + start
     if rev in _indoor["routes"]:
-        return jsonify({"steps": list(reversed(_indoor["routes"][rev])), "found": True})
+        meta = _indoor.get("route_meta", {}).get(rev, {})
+        return jsonify({
+            "steps": list(reversed(_indoor["routes"][rev])),
+            "found": True,
+            "uses_stairs": meta.get("uses_stairs", False),
+            "has_lift_alternative": meta.get("has_lift_alternative", False)
+        })
+
     return jsonify({"found": False, "message": "No indoor route found."})
 
 @app.route("/indoor/navigate", methods=["POST"])
