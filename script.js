@@ -1,10 +1,11 @@
 /* ============================================================
    Campus Navigator — script.js
-   Ultimate Merged Version: Smoothed Compass + Smart Speech + Rerouting
+   Leaflet map | Arrow marker | Completed/remaining route
+   Satellite toggle | Voice | GPS current location
    ============================================================ */
 
 /* ------------------------------------------------------------------ */
-/* CAMPUS NODE COORDINATES                                           */
+/* CAMPUS NODE COORDINATES (embedded for map use)                    */
 /* ------------------------------------------------------------------ */
 
 const CAMPUS_NODES = {
@@ -40,24 +41,32 @@ const CAMPUS_NODES = {
 };
 
 /* ------------------------------------------------------------------ */
-/* STATE & COMPASS (Circular Mean Averaging)                         */
+/* STATE                                                              */
 /* ------------------------------------------------------------------ */
 
-let session_id = null, watchId = null, totalSteps = 0, currentStep = 0;
-let destName = "", allLocations = [];
-let lastLat = null, lastLng = null, userHeading = -1, compassHeading = -1;
+let session_id      = null;
+let watchId         = null;
+let totalSteps      = 0;
+let currentStep     = 0;
+let destName        = "";
+let allLocations    = [];
 
-// Tracking for smart speech
-let lastSpokenInstruction = "", lastSpokenAnnounceType = "";
-let lastSpokenDist = -1, lastStepSpoken = -1;
-let preWarnSpoken = new Set(), continueSpokenAt = -1;
+let lastLat     = null;
+let lastLng     = null;
+let userHeading = -1;
+let compassHeading = -1;
 
+// Use phone compass if available (works even when standing still)
 function startCompass() {
-  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+  if (typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof DeviceOrientationEvent.requestPermission === 'function') {
+    // iOS 13+ requires permission
     DeviceOrientationEvent.requestPermission().then(state => {
       if (state === 'granted') listenOrientation();
     }).catch(() => {});
-  } else listenOrientation();
+  } else {
+    listenOrientation();
+  }
 }
 
 function listenOrientation() {
@@ -65,46 +74,84 @@ function listenOrientation() {
   window.addEventListener('deviceorientation', handleOrientation, true);
 }
 
+// UPGRADE 1: Rolling average for compass smoothing (from script2.js)
 let _compassHistory = [];
+
 function handleOrientation(e) {
   let heading = null;
-  if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null) { heading = e.webkitCompassHeading; } 
-  else if (e.absolute && e.alpha !== null) { heading = (360 - e.alpha) % 360; } 
-  else if (!e.absolute && e.alpha !== null) { heading = (360 - e.alpha) % 360; }
+  if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null) {
+    heading = e.webkitCompassHeading;            // iOS
+  } else if (e.absolute && e.alpha !== null) {
+    heading = (360 - e.alpha) % 360;             // Android absolute
+  } else if (!e.absolute && e.alpha !== null) {
+    heading = (360 - e.alpha) % 360;             // Android non-absolute fallback
+  }
   
   if (heading !== null && !isNaN(heading)) {
     _compassHistory.push(heading);
     if (_compassHistory.length > 5) _compassHistory.shift();
+    // Circular mean to avoid 0/360 wraparound errors
     let sinSum = 0, cosSum = 0;
     for (const h of _compassHistory) {
-      sinSum += Math.sin(h * Math.PI / 180); cosSum += Math.cos(h * Math.PI / 180);
+      sinSum += Math.sin(h * Math.PI / 180);
+      cosSum += Math.cos(h * Math.PI / 180);
     }
     const smoothed = (Math.atan2(sinSum, cosSum) * 180 / Math.PI + 360) % 360;
-    compassHeading = smoothed; userHeading = smoothed;
+    compassHeading = smoothed;
+    userHeading    = smoothed; // prefer compass over GPS movement heading
   }
 }
 
-// Full route variables
-let routeNodeIds = [], roadGeometry = [];
+// Full route node IDs for map drawing
+let routeNodeIds  = [];
+let roadGeometry  = [];  // per-step road waypoints from server
 
 /* ------------------------------------------------------------------ */
-/* MAP SETUP                                                         */
+/* MAP SETUP                                                          */
 /* ------------------------------------------------------------------ */
 
 let map, streetLayer, satelliteLayer, isSatellite = false;
-let arrowMarker = null, routeRemaining = null, routeCompleted = null, waypointMarkers = [];
-let userCentered = true;
+let arrowMarker    = null;   // user position arrow
+let routeRemaining = null;   // blue polyline
+let routeCompleted = null;   // grey polyline
+let waypointMarkers = [];    // dots on each node
+let userCentered   = true;   // auto-pan flag
 
 function initMap() {
-  map = L.map("map", { center: [12.3148, 76.6137], zoom: 17, zoomControl: true, attributionControl: false });
-  streetLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 20 }).addTo(map);
-  satelliteLayer = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 20 });
-
-  Object.entries(CAMPUS_NODES).forEach(([id, node]) => {
-    const dot = L.divIcon({ className: "", html: `<div class="waypoint-dot" style="opacity:0.5"></div>`, iconSize: [12, 12], iconAnchor: [6, 6] });
-    L.marker([node.lat, node.lng], { icon: dot }).bindPopup(`<b>${node.name}</b>`).addTo(map);
+  // Centre on SJCE campus
+  map = L.map("map", {
+    center: [12.3148, 76.6137],
+    zoom: 17,
+    zoomControl: true,
+    attributionControl: false
   });
 
+  // Street layer (OpenStreetMap)
+  streetLayer = L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    { maxZoom: 20 }
+  ).addTo(map);
+
+  // Satellite layer (ESRI World Imagery)
+  satelliteLayer = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    { maxZoom: 20 }
+  );
+
+  // Plot all campus nodes as small dots (non-nav mode)
+  Object.entries(CAMPUS_NODES).forEach(([id, node]) => {
+    const dot = L.divIcon({
+      className: "",
+      html: `<div class="waypoint-dot" style="opacity:0.5"></div>`,
+      iconSize: [12, 12],
+      iconAnchor: [6, 6]
+    });
+    L.marker([node.lat, node.lng], { icon: dot })
+      .bindPopup(`<b>${node.name}</b>`)
+      .addTo(map);
+  });
+
+  // Detect user panning away — disable auto-center
   map.on("dragstart", () => {
     userCentered = false;
     document.getElementById("recenter-btn").classList.add("show");
@@ -113,98 +160,215 @@ function initMap() {
 
 function toggleMapLayer() {
   const btn = document.getElementById("map-toggle");
-  if (isSatellite) { map.removeLayer(satelliteLayer); streetLayer.addTo(map); btn.textContent = "🛰 SATELLITE"; isSatellite = false; } 
-  else { map.removeLayer(streetLayer); satelliteLayer.addTo(map); btn.textContent = "🗺 STREET"; isSatellite = true; }
+  if (isSatellite) {
+    map.removeLayer(satelliteLayer);
+    streetLayer.addTo(map);
+    btn.textContent = "🛰 SATELLITE";
+    isSatellite = false;
+  } else {
+    map.removeLayer(streetLayer);
+    satelliteLayer.addTo(map);
+    btn.textContent = "🗺 STREET";
+    isSatellite = true;
+  }
 }
 
 function recenterMap() {
-  if (lastLat !== null) { map.setView([lastLat, lastLng], 18); userCentered = true; document.getElementById("recenter-btn").classList.remove("show"); }
+  if (lastLat !== null) {
+    map.setView([lastLat, lastLng], 18);
+    userCentered = true;
+    document.getElementById("recenter-btn").classList.remove("show");
+  }
 }
+
+/* ------------------------------------------------------------------ */
+/* ARROW MARKER (direction of movement)                              */
+/* ------------------------------------------------------------------ */
 
 function createArrowIcon(heading) {
   const h = heading >= 0 ? heading : 0;
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
+      <circle cx="18" cy="18" r="14" fill="#00d4ff" fill-opacity="0.25" stroke="#00d4ff" stroke-width="1.5"/>
+      <circle cx="18" cy="18" r="7"  fill="#00d4ff"/>
+      <polygon points="18,4 22,16 18,13 14,16"
+               fill="white" transform="rotate(${h}, 18, 18)"/>
+    </svg>`;
   return L.divIcon({
-    className: "", iconSize: [36, 36], iconAnchor: [18, 18],
-    html: `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
-             <circle cx="18" cy="18" r="14" fill="#00d4ff" fill-opacity="0.25" stroke="#00d4ff" stroke-width="1.5"/>
-             <circle cx="18" cy="18" r="7"  fill="#00d4ff"/>
-             <polygon points="18,4 22,16 18,13 14,16" fill="white" transform="rotate(${h}, 18, 18)"/>
-           </svg>`
+    className: "",
+    html: svg,
+    iconSize: [36, 36],
+    iconAnchor: [18, 18]
   });
 }
 
 function updateArrowMarker(lat, lng, heading) {
   const icon = createArrowIcon(heading);
-  if (!arrowMarker) { arrowMarker = L.marker([lat, lng], { icon, zIndexOffset: 1000 }).addTo(map); } 
-  else { arrowMarker.setLatLng([lat, lng]); arrowMarker.setIcon(icon); }
-  if (userCentered) map.setView([lat, lng], map.getZoom());
-}
-
-function drawRoute(nodeIds, completedUpTo) {
-  if (routeRemaining) { map.removeLayer(routeRemaining); routeRemaining = null; }
-  if (routeCompleted) { map.removeLayer(routeCompleted); routeCompleted = null; }
-  waypointMarkers.forEach(m => map.removeLayer(m)); waypointMarkers = [];
-  if (nodeIds.length < 2) return;
-
-  function getSegmentCoords(stepIdx) {
-    const wps = roadGeometry[stepIdx];
-    if (wps && wps.length >= 2) return wps;
-    const a = CAMPUS_NODES[nodeIds[stepIdx]], b = CAMPUS_NODES[nodeIds[stepIdx + 1]];
-    return a && b ? [[a.lat, a.lng], [b.lat, b.lng]] : [];
+  if (!arrowMarker) {
+    arrowMarker = L.marker([lat, lng], { icon, zIndexOffset: 1000 }).addTo(map);
+  } else {
+    arrowMarker.setLatLng([lat, lng]);
+    arrowMarker.setIcon(icon);
   }
-
-  const doneCoords = [], leftCoords = [];
-  for (let i = 0; i < nodeIds.length - 1; i++) {
-    const seg = getSegmentCoords(i);
-    if (i < completedUpTo) doneCoords.push(...seg);
-    else {
-      if (leftCoords.length === 0 && doneCoords.length > 0) leftCoords.push(doneCoords[doneCoords.length - 1]);
-      leftCoords.push(...seg);
-    }
-  }
-
-  if (doneCoords.length >= 2) routeCompleted = L.polyline(doneCoords, { color: "#4a5568", weight: 4, opacity: 0.7, dashArray: "6 6" }).addTo(map);
-  if (leftCoords.length >= 2) routeRemaining = L.polyline(leftCoords, { color: "#00d4ff", weight: 6, opacity: 0.95 }).addTo(map);
-
-  nodeIds.forEach((id, idx) => {
-    const n = CAMPUS_NODES[id];
-    if (!n) return;
-    const isDest = idx === nodeIds.length - 1;
-    let cls = "waypoint-dot" + (idx < completedUpTo ? " done" : "") + (isDest ? " dest" : "");
-    const dotIcon = L.divIcon({ className: "", html: `<div class="${cls}"></div>`, iconSize: isDest ? [16,16] : [12,12], iconAnchor: isDest ? [8,8] : [6,6] });
-    const m = L.marker([n.lat, n.lng], { icon: dotIcon }).bindPopup(`<b>${n.name}</b>`).addTo(map);
-    waypointMarkers.push(m);
-  });
-
-  if (completedUpTo === 0 && [...doneCoords, ...leftCoords].length >= 2) {
-    map.fitBounds(L.polyline([...doneCoords, ...leftCoords]).getBounds(), { padding: [50, 50] });
-    userCentered = false; document.getElementById("recenter-btn").classList.add("show");
+  if (userCentered) {
+    map.setView([lat, lng], map.getZoom());
   }
 }
 
 /* ------------------------------------------------------------------ */
-/* UTILITIES (Speak, Listen, Heading)                                */
+/* ROUTE DRAWING                                                      */
+/* ------------------------------------------------------------------ */
+
+function drawRoute(nodeIds, completedUpTo) {
+  // Clear existing lines and markers
+  if (routeRemaining) { map.removeLayer(routeRemaining); routeRemaining = null; }
+  if (routeCompleted) { map.removeLayer(routeCompleted); routeCompleted = null; }
+  waypointMarkers.forEach(m => map.removeLayer(m));
+  waypointMarkers = [];
+
+  if (nodeIds.length < 2) return;
+
+  // Build full route coords using real road waypoints where available,
+  // falling back to straight line between nodes
+  function getSegmentCoords(stepIdx) {
+    const fromId = nodeIds[stepIdx];
+    const toId   = nodeIds[stepIdx + 1];
+    const wps    = roadGeometry[stepIdx];         // [[lat,lng], ...]
+    if (wps && wps.length >= 2) return wps;       // real road geometry
+    // Fallback: straight line between the two nodes
+    const a = CAMPUS_NODES[fromId], b = CAMPUS_NODES[toId];
+    if (!a || !b) return [];
+    return [[a.lat, a.lng], [b.lat, b.lng]];
+  }
+
+  // Split into completed and remaining segments
+  const doneCoords = [];
+  const leftCoords = [];
+
+  for (let i = 0; i < nodeIds.length - 1; i++) {
+    const seg = getSegmentCoords(i);
+    if (i < completedUpTo) {
+      doneCoords.push(...seg);
+    } else {
+      // Include last done node as start of remaining so lines connect
+      if (leftCoords.length === 0 && doneCoords.length > 0) {
+        leftCoords.push(doneCoords[doneCoords.length - 1]);
+      }
+      leftCoords.push(...seg);
+    }
+  }
+
+  // Draw completed path — grey dashed
+  if (doneCoords.length >= 2) {
+    routeCompleted = L.polyline(doneCoords, {
+      color: "#4a5568", weight: 4, opacity: 0.7, dashArray: "6 6"
+    }).addTo(map);
+  }
+
+  // Draw remaining path — bright blue
+  if (leftCoords.length >= 2) {
+    routeRemaining = L.polyline(leftCoords, {
+      color: "#00d4ff", weight: 6, opacity: 0.95
+    }).addTo(map);
+  }
+
+  // Waypoint dots at each node
+  nodeIds.forEach((id, idx) => {
+    const n = CAMPUS_NODES[id];
+    if (!n) return;
+    const isDone = idx < completedUpTo;
+    const isDest = idx === nodeIds.length - 1;
+    const isNext = idx === completedUpTo + 1;
+
+    let cls = "waypoint-dot";
+    if (isDone) cls += " done";
+    if (isDest) cls += " dest";
+
+    const size = isDest ? [16,16] : [12,12];
+    const anchor = isDest ? [8,8] : [6,6];
+
+    const dotIcon = L.divIcon({
+      className: "",
+      html: `<div class="${cls}"></div>`,
+      iconSize: size, iconAnchor: anchor
+    });
+
+    const m = L.marker([n.lat, n.lng], { icon: dotIcon })
+      .bindPopup(`<b>${n.name}</b>${isDest ? "<br><i>🏁 Destination</i>" : ""}${isNext ? "<br><i>▶ Next waypoint</i>" : ""}`)
+      .addTo(map);
+    waypointMarkers.push(m);
+  });
+
+  // Fit full route on first draw
+  if (completedUpTo === 0) {
+    const allPts = [...doneCoords, ...leftCoords];
+    if (allPts.length >= 2) {
+      map.fitBounds(L.polyline(allPts).getBounds(), { padding: [50, 50] });
+      userCentered = false;
+      document.getElementById("recenter-btn").classList.add("show");
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* SPEAK                                                              */
 /* ------------------------------------------------------------------ */
 
 function speak(text, onEnd) {
   if (!window.speechSynthesis) { if (onEnd) onEnd(); return; }
   window.speechSynthesis.cancel();
-  const utt = new SpeechSynthesisUtterance(text); utt.lang = "en-IN"; utt.rate = 0.93;
-  if (onEnd) utt.onend = onEnd; window.speechSynthesis.speak(utt);
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang  = "en-IN";
+  utt.rate  = 0.93;
+  utt.pitch = 1.0;
+  if (onEnd) utt.onend = onEnd;
+  window.speechSynthesis.speak(utt);
 }
+
+/* ------------------------------------------------------------------ */
+/* LISTEN                                                             */
+/* ------------------------------------------------------------------ */
 
 function listen() {
   return new Promise((resolve, reject) => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { reject("not_supported"); return; }
     setVoiceStatus("listening");
-    const rec = new SR(); rec.lang = "en-IN"; rec.maxAlternatives = 3;
+    const rec = new SR();
+    rec.lang = "en-IN"; rec.interimResults = false; rec.maxAlternatives = 3;
     rec.onresult = e => { setVoiceStatus("idle"); resolve(Array.from(e.results[0]).map(r => r.transcript.trim().toLowerCase())); };
     rec.onerror  = e => { setVoiceStatus("idle"); reject(e.error); };
     rec.onend    = ()  => setVoiceStatus("idle");
     rec.start();
   });
 }
+
+/* ------------------------------------------------------------------ */
+/* MATCH SPOKEN TEXT                                                  */
+/* ------------------------------------------------------------------ */
+
+function matchLocation(transcripts) {
+  for (const transcript of transcripts) {
+    const cleaned = transcript.toLowerCase().replace(/[^a-z0-9 ]/g, "");
+    let best = null, bestScore = 0;
+    for (const loc of allLocations) {
+      const locName  = loc.name.toLowerCase().replace(/[^a-z0-9 ]/g, "");
+      const locWords = locName.split(" ");
+      const spoken   = cleaned.split(" ");
+      const overlap  = locWords.filter(w => spoken.some(s => s.includes(w) || w.includes(s))).length;
+      const score    = overlap / locWords.length;
+      const contains = cleaned.includes(locName) || locName.includes(cleaned);
+      const fs = contains ? 1 : score;
+      if (fs > bestScore) { bestScore = fs; best = loc; }
+    }
+    if (bestScore >= 0.4) return best;
+  }
+  return null;
+}
+
+/* ------------------------------------------------------------------ */
+/* HEADING                                                            */
+/* ------------------------------------------------------------------ */
 
 function computeHeading(lat1, lng1, lat2, lng2) {
   const r = d => d * Math.PI / 180;
@@ -214,9 +378,121 @@ function computeHeading(lat1, lng1, lat2, lng2) {
   return (Math.atan2(x, y) * 180 / Math.PI + 360) % 360;
 }
 
+/* ------------------------------------------------------------------ */
+/* VOICE FLOW                                                         */
+/* ------------------------------------------------------------------ */
+
+async function runVoiceSetup() {
+  setVoiceFlowVisible(true);
+  const startMatched = await askVoiceLocation("start");
+  const destMatched  = await askVoiceLocation("dest");
+  if (startMatched && destMatched) {
+    setVoicePrompt("✅ Both set. Starting navigation...");
+    speak("Starting navigation now.", async () => { await delay(400); startNavigation(); });
+  }
+}
+
+async function askVoiceLocation(which) {
+  const isStart = which === "start";
+
+  if (isStart) {
+    const q = "Select your starting point. Shall I use your current location? Say yes to use GPS, or say the name of your starting location.";
+    setVoicePrompt(q); speak(q); await delay(3800);
+    try {
+      const t = await listen();
+      setVoicePrompt('Heard: "' + t[0] + '"');
+      const isYes = t.some(x => x.includes("yes")||x.includes("yeah")||x.includes("sure")||x.includes("ok")||x.includes("current")||x.includes("my location")||x.includes("here")||x.includes("use my"));
+      if (isYes) {
+        setVoicePrompt("📡 Using your GPS location...");
+        speak("Sure, using your current GPS location.");
+        await useCurrentLocationAsync();
+        checkStartReady(); return { fromGPS: true };
+      }
+      const direct = matchLocation(t);
+      if (direct) {
+        document.getElementById("start-select").value = direct.id;
+        document.getElementById("start-select").classList.add("voice-set");
+        setVoicePrompt("✅ Start: " + direct.name);
+        speak("Got it. Starting location is " + direct.name + ".");
+        checkStartReady(); await delay(2600); return direct;
+      }
+      setVoicePrompt("❓ Could not match. Asking again...");
+      speak("Sorry, I could not find that. Let me ask again."); await delay(2500);
+    } catch(e) {
+      if (e === "not_supported") { speak("Voice not supported. Please use dropdowns."); return null; }
+    }
+  }
+
+  const question = isStart ? "Please say your starting location clearly." : "Where do you want to go? Please say your destination.";
+  let matched = null, attempts = 0;
+  while (!matched && attempts < 3) {
+    attempts++;
+    setVoicePrompt(question); speak(question); await delay(3200);
+    try {
+      const t = await listen();
+      setVoicePrompt('Heard: "' + t[0] + '" — matching...');
+      matched = matchLocation(t);
+      if (matched) {
+        const selId = isStart ? "start-select" : "dest-select";
+        document.getElementById(selId).value = matched.id;
+        document.getElementById(selId).classList.add("voice-set");
+        setVoicePrompt("✅ " + (isStart ? "Start" : "Destination") + ": " + matched.name);
+        speak("Got it. " + (isStart ? "Starting location is " : "Destination is ") + matched.name + ".");
+        checkStartReady(); await delay(2600);
+      } else {
+        const r = attempts < 3 ? "Sorry, try again." : "Please use the dropdown below.";
+        setVoicePrompt("❓ Could not match. " + (attempts < 3 ? "Retrying..." : "Use dropdown."));
+        speak(r); await delay(3000);
+      }
+    } catch(e) {
+      if (e === "not_supported") { speak("Voice not supported."); return null; }
+      return null;
+    }
+  }
+  checkStartReady(); return matched;
+}
+
+/* ------------------------------------------------------------------ */
+/* GPS CURRENT LOCATION (async)                                      */
+/* ------------------------------------------------------------------ */
+
+function useCurrentLocation() { useCurrentLocationAsync(); }
+
+function useCurrentLocationAsync() {
+  return new Promise(resolve => {
+    const btn = document.getElementById("gps-locate-btn");
+    btn.disabled = true; btn.innerText = "📡 Locating...";
+    setGpsStatus("waiting", "Getting your current position...");
+    navigator.geolocation.getCurrentPosition(
+      async pos => {
+        try {
+          const res  = await fetch("/nearest_location", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({lat:pos.coords.latitude,lng:pos.coords.longitude}) });
+          const data = await res.json();
+          if (data.error) { setGpsStatus("error",data.error); speak(data.error); btn.disabled=false; btn.innerText="📍 Use My Current Location"; resolve(null); return; }
+          document.getElementById("start-select").value = data.location_id;
+          document.getElementById("start-select").classList.add("voice-set");
+          setVoicePrompt("📍 " + data.name + " (" + Math.round(data.distance_m) + "m away)");
+          setGpsStatus("active","Location found: " + data.name);
+          speak("Your current location is " + data.name + ".");
+          btn.disabled=false; btn.innerText="✅ " + data.name;
+          checkStartReady(); resolve(data);
+        } catch(e) { setGpsStatus("error","Could not reach server."); btn.disabled=false; btn.innerText="📍 Use My Current Location"; resolve(null); }
+      },
+      () => { setGpsStatus("error","GPS denied."); speak("Could not get location. Allow GPS."); btn.disabled=false; btn.innerText="📍 Use My Current Location"; resolve(null); },
+      { enableHighAccuracy:true, timeout:15000, maximumAge:0 }
+    );
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* UI HELPERS                                                         */
+/* ------------------------------------------------------------------ */
+
 const delay = ms => new Promise(r => setTimeout(r, ms));
+
 function setVoiceStatus(state) {
-  const btn = document.getElementById("voice-input-btn"), mic = document.getElementById("mic-icon");
+  const btn = document.getElementById("voice-input-btn");
+  const mic = document.getElementById("mic-icon");
   if (state === "listening") { btn.classList.add("listening"); mic.innerText = "🔴"; setVoicePrompt("Listening..."); }
   else { btn.classList.remove("listening"); mic.innerText = "🎙️"; }
 }
@@ -227,117 +503,187 @@ function toggleVoiceFlow() {
   vf.style.display = vf.style.display === "block" ? "none" : "block";
   if (vf.style.display === "block") setVoicePrompt("Press the mic and speak your location.");
 }
-function setGpsStatus(state, msg) { document.getElementById("gps-dot").className = "gps-dot " + state; document.getElementById("gps-text").innerHTML = msg; }
-function checkStartReady() { const s = document.getElementById("start-select").value, d = document.getElementById("dest-select").value; document.getElementById("start-btn").disabled = !(s && d && s !== d); }
+function setGpsStatus(state, msg) {
+  document.getElementById("gps-dot").className = "gps-dot " + state;
+  document.getElementById("gps-text").innerHTML = msg;
+}
+function checkStartReady() {
+  const s = document.getElementById("start-select").value;
+  const d = document.getElementById("dest-select").value;
+  document.getElementById("start-btn").disabled = !(s && d && s !== d);
+}
 
 /* ------------------------------------------------------------------ */
-/* INITIALIZATION & START ROUTINE                                    */
+/* LOAD LOCATIONS                                                     */
 /* ------------------------------------------------------------------ */
 
 async function loadLocations() {
   try {
-    const res = await fetch("/locations"), raw = await res.json();
+    const res = await fetch("/locations");
+    const raw = await res.json();
     allLocations = raw.map(l => ({ id: l.id.trim().replace(/\r/g,""), name: l.name.trim().replace(/\r/g,"") }));
-    const ss = document.getElementById("start-select"), ds = document.getElementById("dest-select");
+    const ss = document.getElementById("start-select");
+    const ds = document.getElementById("dest-select");
     allLocations.forEach(l => { ss.appendChild(new Option(l.name, l.id)); ds.appendChild(new Option(l.name, l.id)); });
-    [ss, ds].forEach(sel => sel.addEventListener("change", () => { checkStartReady(); if (ss.value && ds.value && ss.value !== ds.value) startNavigation(); }));
+    [ss, ds].forEach(sel => sel.addEventListener("change", () => {
+      checkStartReady();
+      const s = ss.value, d = ds.value;
+      if (s && d && s !== d) startNavigation();
+    }));
   } catch(e) { setGpsStatus("error","Could not load campus data."); }
 }
+
+/* ------------------------------------------------------------------ */
+/* PAGE LOAD                                                          */
+/* ------------------------------------------------------------------ */
 
 window.onload = async function() {
   initMap();
   if (!navigator.geolocation) { setGpsStatus("error","Geolocation not supported."); return; }
   setGpsStatus("waiting","Ready.");
   await loadLocations();
-  await delay(600); speak("Welcome to Campus Navigator. Use voice, GPS, or the dropdowns to begin.");
+  await delay(600);
+  speak("Welcome to Campus Navigator. Use voice, GPS, or the dropdowns to begin.");
 };
 
-function useCurrentLocation() {
-  const btn = document.getElementById("gps-locate-btn"); btn.disabled = true; btn.innerText = "📡 Locating...";
-  navigator.geolocation.getCurrentPosition(async pos => {
-      try {
-        const res = await fetch("/nearest_location", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({lat:pos.coords.latitude,lng:pos.coords.longitude}) });
-        const data = await res.json();
-        if (data.error) { setGpsStatus("error",data.error); btn.innerText="📍 Use My Current Location"; btn.disabled=false; return; }
-        document.getElementById("start-select").value = data.location_id; checkStartReady();
-        btn.innerText="✅ " + data.name; btn.disabled=false; setGpsStatus("active","Location found.");
-      } catch(e) { btn.disabled=false; btn.innerText="📍 Try Again"; }
-    }, () => { btn.disabled=false; btn.innerText="📍 Use My Current Location"; }, { enableHighAccuracy:true });
-}
+/* ------------------------------------------------------------------ */
+/* START NAVIGATION                                                   */
+/* ------------------------------------------------------------------ */
 
 async function startNavigation() {
-  const start = document.getElementById("start-select").value.trim(), dest = document.getElementById("dest-select").value.trim();
-  destName = document.getElementById("dest-select").selectedOptions[0].text.trim();
+  const start = document.getElementById("start-select").value.trim();
+  const dest  = document.getElementById("dest-select").value.trim();
+  destName    = document.getElementById("dest-select").selectedOptions[0].text.trim();
   if (!start || !dest || start === dest) return;
-  document.getElementById("start-btn").disabled = true; setGpsStatus("waiting","Starting...");
+  document.getElementById("start-btn").disabled = true;
+  setGpsStatus("waiting","Starting navigation...");
 
   try {
-    const res = await fetch("/start_navigation", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({start,destination:dest}) });
+    const res  = await fetch("/start_navigation", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({start,destination:dest}) });
     const data = await res.json();
-    if (data.error) { speak("Error: "+data.error); document.getElementById("start-btn").disabled=false; return; }
+    if (data.error) { setGpsStatus("error","Error: "+data.error); speak("Error: "+data.error); document.getElementById("start-btn").disabled=false; return; }
 
-    session_id = data.session_id; totalSteps = data.total_steps; currentStep = 0; routeNodeIds = data.route; roadGeometry = data.road_geometry || [];
-    lastLat = null; lastLng = null; userHeading = -1; lastSpokenInstruction = ""; lastSpokenAnnounceType = ""; preWarnSpoken = new Set(); continueSpokenAt = -1;
+    session_id   = data.session_id;
+    totalSteps   = data.total_steps;
+    currentStep  = 0;
+    routeNodeIds = data.route;
+    roadGeometry = data.road_geometry || [];
+    lastLat = null; lastLng = null; userHeading = -1;
+    lastSpokenInstruction = ""; lastSpokenAnnounceType = "";
+    lastSpokenDist = -1; lastStepSpoken = -1;
+    preWarnSpoken = new Set(); continueSpokenAt = -1;
 
+    // Draw full route on map
     drawRoute(routeNodeIds, 0);
-    document.getElementById("setup-card").style.display = "none";
+
+    // Show nav UI, hide setup
+    document.getElementById("setup-card").style.display        = "none";
     document.getElementById("instruction-banner").classList.add("show");
-    document.getElementById("stop-wrap").style.display = "block";
-    document.getElementById("map").classList.add("nav-active"); map.invalidateSize();
+    document.getElementById("stop-wrap").style.display         = "block";
+    document.getElementById("map").classList.add("nav-active");
+    map.invalidateSize();
 
-    updateProgress(0); speak("Navigation started. Heading to " + destName);
-    startCompass();
+    updateProgress(0);
+    speak("Navigation started. Heading to " + destName + ". Acquiring GPS signal.");
+    setGpsStatus("waiting","Acquiring GPS signal...");
 
-    // Raw GPS auto-start check
+    // Start compass immediately
+    startCompass();  
+
+    // UPGRADE 2: Try to get initial GPS fix to use actual position as start
     navigator.geolocation.getCurrentPosition(async (pos) => {
+      const initLat = pos.coords.latitude;
+      const initLng = pos.coords.longitude;
       try {
-        const gpsRes = await fetch("/start_navigation", {
+        const gpsRes  = await fetch("/start_from_gps", {
           method:"POST", headers:{"Content-Type":"application/json"},
-          body: JSON.stringify({lat:pos.coords.latitude, lng:pos.coords.longitude, destination:dest})
+          body: JSON.stringify({lat:initLat, lng:initLng, destination:dest})
         });
         const gpsData = await gpsRes.json();
-        if (gpsData.session_id) {
-          session_id = gpsData.session_id; routeNodeIds = gpsData.route; roadGeometry = gpsData.road_geometry; drawRoute(routeNodeIds, 0);
+        if (!gpsData.error) {
+          session_id   = gpsData.session_id;
+          totalSteps   = gpsData.total_steps;
+          currentStep  = 0;
+          routeNodeIds = gpsData.route;
+          roadGeometry = gpsData.road_geometry || [];
+          drawRoute(routeNodeIds, 0);
         }
       } catch(e) {}
+      
+      // Start continuous tracking
       watchId = navigator.geolocation.watchPosition(sendLocation, gpsError, { enableHighAccuracy:true, maximumAge:0, timeout:15000 });
     }, () => {
+      // Fall back to node-based start if GPS fails to start quickly
       watchId = navigator.geolocation.watchPosition(sendLocation, gpsError, { enableHighAccuracy:true, maximumAge:0, timeout:15000 });
     }, { enableHighAccuracy:true, timeout:10000 });
 
-  } catch(e) { document.getElementById("start-btn").disabled = false; }
+  } catch(e) {
+    setGpsStatus("error","Server connection failed."); speak("Could not connect to server.");
+    document.getElementById("start-btn").disabled = false;
+  }
 }
 
 /* ------------------------------------------------------------------ */
-/* GPS TRACKING & SMART SPEECH (MERGED LOGIC)                        */
+/* SEND GPS TO SERVER  — Google Maps-grade client                    */
 /* ------------------------------------------------------------------ */
 
-async function sendLocation(position) {
-  const lat = position.coords.latitude, lng = position.coords.longitude, acc = Math.round(position.coords.accuracy || 999);
-  
-  if (lastLat !== null && lastLng !== null) {
-    const moveDist = Math.sqrt(Math.pow((lat-lastLat)*111000,2) + Math.pow((lng-lastLng)*111000*Math.cos(lat*Math.PI/180),2));
-    if (moveDist > 2.5 && compassHeading < 0) userHeading = computeHeading(lastLat, lastLng, lat, lng);
-  }
-  lastLat = lat; lastLng = lng; updateArrowMarker(lat, lng, userHeading);
+// Tracking state for smart speech deduplication
+let lastSpokenInstruction = "";
+let lastSpokenAnnounceType = "";
+let lastSpokenDist = -1;
+let lastStepSpoken = -1;
+let preWarnSpoken  = new Set();   // keys of upcoming warnings already spoken
+let continueSpokenAt = -1;        // dist at which we last spoke a "continue"
 
-  setGpsStatus("active", `Tracking · ${userHeading >= 0 ? Math.round(userHeading) + "°" : "no heading"} · GPS: ±${acc}m`);
+async function sendLocation(position) {
+  const lat      = position.coords.latitude;
+  const lng      = position.coords.longitude;
+  const accuracy = Math.round(position.coords.accuracy || 999);
+
+  // ── Heading: compass first, then GPS movement ──────────────────────
+  if (lastLat !== null && lastLng !== null) {
+    const dLat = (lat - lastLat) * 111000;
+    const dLng = (lng - lastLng) * 111000 * Math.cos(lat * Math.PI / 180);
+    const moveDist = Math.sqrt(dLat * dLat + dLng * dLng);
+    if (moveDist > 2.5 && compassHeading < 0) {
+      userHeading = computeHeading(lastLat, lastLng, lat, lng);
+    }
+  }
+  lastLat = lat; lastLng = lng;
+
+  // ── Arrow marker ───────────────────────────────────────────────────
+  updateArrowMarker(lat, lng, userHeading);
+
+  // ── GPS accuracy badge ─────────────────────────────────────────────
+  const accColor = accuracy < 15 ? "#00ff9d" : accuracy < 35 ? "#ffb800" : "#ff4d6d";
+  const accLabel = accuracy < 15 ? "GPS: High" : accuracy < 35 ? "GPS: Medium" : "GPS: Low";
+  setGpsStatus("active",
+    `Tracking · ${userHeading >= 0 ? Math.round(userHeading) + "°" : "no heading"} · `
+    + `<span style="color:${accColor}">${accLabel} (±${accuracy}m)</span>`
+  );
 
   try {
-    const res = await fetch("/update_location", {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({session_id, lat, lng, heading: userHeading, accuracy: acc})
+    const res  = await fetch("/update_location", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        session_id: session_id,
+        lat, lng,
+        heading:  userHeading,
+        accuracy: accuracy
+      })
     });
     const data = await res.json();
-    if (data.error) return;
+    if (data.error) { setGpsStatus("error", "Session error."); return; }
     if (data.instruction === "Navigation complete." || data.arrived) { showArrived(); return; }
 
-    const { instruction, distance, step = currentStep, announce_type: announceType = "continue", off_route: offRoute } = data;
+    const instruction  = data.instruction;
+    const distance     = Math.round(data.distance);
+    const step         = data.step ?? currentStep;
+    const announceType = data.announce_type || "continue";
+    const offRoute     = data.off_route || false;
 
-    if (step !== currentStep) { currentStep = step; drawRoute(routeNodeIds, step); }
-    updateBearingOverlay(data.target_bearing, userHeading);
-
-    // ── REROUTING LOGIC (With Cooldown) ──
+    // ── UPGRADE 3: Off-Route Handling (with 8s speech cooldown) ────
     if (offRoute) {
       const now = Date.now();
       if (!window._lastOffRouteSpeak || now - window._lastOffRouteSpeak > 8000) {
@@ -345,177 +691,736 @@ async function sendLocation(position) {
         speak(instruction);
       }
       document.getElementById("instruction-text").innerText = "⚠️ " + instruction;
-      document.getElementById("banner-distance").innerText  = Math.round(distance) + " m to path";
+      // If we are off-route, display distance to path instead of distance to next node
+      document.getElementById("banner-distance").innerText  = Math.round(data.distance) + " m to path";
       document.getElementById("step-badge").innerText       = "OFF ROUTE";
       return;
     }
     window._lastOffRouteSpeak = 0;
 
-    // ── GOOGLE MAPS-STYLE SPEECH LOGIC ──
+
+    // ── Redraw route on step change ────────────────────────────────
+    if (step !== currentStep) {
+      currentStep = step;
+      drawRoute(routeNodeIds, step);
+    }
+
+    // ── Smart speech logic ─────────────────────────────────────────
+    //
+    // Google Maps rules implemented:
+    //  1. Speak immediately on every new TURN instruction
+    //  2. Pre-warn upcoming turns once when 60 m away, once when 20 m away
+    //  3. "Continue" only spoken every 100 m (not every GPS tick)
+    //  4. Arrival spoken once
+    //  5. Never repeat same instruction twice in a row
+
     const instrKey = announceType + "|" + instruction;
-    
-    if (announceType === "current" && instrKey !== lastSpokenInstruction) {
-      speak(instruction); lastSpokenInstruction = instrKey; lastSpokenAnnounceType = announceType; preWarnSpoken = new Set(); continueSpokenAt = -1;
-    } else if (announceType === "upcoming") {
-      if (distance <= 65 && distance > 30 && !preWarnSpoken.has(instrKey+"|60")) {
-        preWarnSpoken.add(instrKey+"|60"); speak(instruction); lastSpokenInstruction = instrKey;
-      } else if (distance <= 25 && !preWarnSpoken.has(instrKey+"|20")) {
-        preWarnSpoken.add(instrKey+"|20"); speak(instruction); lastSpokenInstruction = instrKey;
+
+    if (announceType === "current") {
+      // New turn at this waypoint — speak immediately if not already spoken
+      if (instrKey !== lastSpokenInstruction) {
+        speakNav(instruction);
+        lastSpokenInstruction  = instrKey;
+        lastSpokenAnnounceType = announceType;
+        preWarnSpoken          = new Set();   // reset pre-warns for new segment
+        continueSpokenAt       = -1;
       }
+
+    } else if (announceType === "upcoming") {
+      // Pre-turn warning — speak at ~60 m and again at ~20 m
+      const warnKey60 = instrKey + "|60";
+      const warnKey20 = instrKey + "|20";
+      if (distance <= 65 && distance > 30 && !preWarnSpoken.has(warnKey60)) {
+        preWarnSpoken.add(warnKey60);
+        speakNav(instruction);
+        lastSpokenInstruction = instrKey;
+      } else if (distance <= 25 && !preWarnSpoken.has(warnKey20)) {
+        preWarnSpoken.add(warnKey20);
+        speakNav(instruction);
+        lastSpokenInstruction = instrKey;
+      }
+
     } else {
+      // "continue" — speak once when step changes, then every ~100 m
       if (step !== lastStepSpoken) {
-        lastStepSpoken = step; continueSpokenAt = distance; speak(instruction); lastSpokenInstruction = instrKey;
+        lastStepSpoken   = step;
+        continueSpokenAt = distance;
+        speakNav(instruction);
+        lastSpokenInstruction = instrKey;
       } else if (continueSpokenAt > 0 && continueSpokenAt - distance >= 100) {
-        continueSpokenAt = distance; speak(instruction); lastSpokenInstruction = instrKey;
+        continueSpokenAt = distance;
+        speakNav(instruction);
+        lastSpokenInstruction = instrKey;
       }
     }
 
-    // Update UI
+    // ── Update UI banner ───────────────────────────────────────────
     document.getElementById("instruction-text").innerText = instruction;
-    document.getElementById("banner-distance").innerText  = Math.round(distance) + " m";
+    document.getElementById("banner-distance").innerText  = distance + " m";
     document.getElementById("step-badge").innerText       = "STEP " + (step + 1);
     updateProgress(step);
 
-  } catch(e) {}
+    // ── Bearing arrow overlay (visual direction indicator) ─────────
+    updateBearingOverlay(data.target_bearing, userHeading);
+
+  } catch(e) {
+    setGpsStatus("error", "Connection lost. Retrying...");
+  }
 }
 
+/* ── Speak wrapper — always cancels previous before speaking ───────── */
+function speakNav(text) {
+  if (!document.getElementById("voice-toggle")?.checked) return;
+  window.speechSynthesis && window.speechSynthesis.cancel();
+  const utt  = new SpeechSynthesisUtterance(text);
+  utt.lang   = "en-IN";
+  utt.rate   = 0.95;
+  utt.pitch  = 1.0;
+  window.speechSynthesis && window.speechSynthesis.speak(utt);
+}
+
+/* ── Visual bearing overlay: small arrow showing target direction ──── */
 function updateBearingOverlay(targetBear, userHead) {
   let el = document.getElementById("bearing-overlay");
   if (!el) {
-    el = document.createElement("div"); el.id = "bearing-overlay";
-    el.style.cssText = `position:fixed; bottom:160px; right:14px; width:48px; height:48px; background:rgba(13,25,41,0.88); border:2px solid #00d4ff; border-radius:50%; display:flex; align-items:center; justify-content:center; z-index:2000; font-size:22px; transition:transform 0.3s; box-shadow:0 2px 12px rgba(0,212,255,0.25);`;
+    el = document.createElement("div");
+    el.id = "bearing-overlay";
+    el.style.cssText = `
+      position:fixed; bottom:160px; right:14px; width:48px; height:48px;
+      background:rgba(13,25,41,0.88); border:2px solid #00d4ff;
+      border-radius:50%; display:flex; align-items:center; justify-content:center;
+      z-index:2000; font-size:22px; transition:transform 0.3s;
+      box-shadow:0 2px 12px rgba(0,212,255,0.25);
+    `;
     document.body.appendChild(el);
   }
   if (targetBear >= 0 && userHead >= 0) {
-    el.style.transform = `rotate(${(targetBear - userHead + 360) % 360}deg)`;
-    el.innerHTML = "↑"; el.style.color = "#00d4ff";
-  } else if (targetBear >= 0) { el.innerHTML = "↑"; el.style.color = "#ffb800"; el.style.transform = "none"; }
+    const rel = (targetBear - userHead + 360) % 360;
+    el.style.transform = `rotate(${rel}deg)`;
+    el.innerHTML = "↑";
+    el.style.color = "#00d4ff";
+  } else if (targetBear >= 0) {
+    el.innerHTML = "↑";
+    el.style.color = "#ffb800";
+    el.style.transform = "none";
+  }
 }
+
+/* ------------------------------------------------------------------ */
+/* PROGRESS                                                           */
+/* ------------------------------------------------------------------ */
+
+function updateProgress(step) {
+  const pct = totalSteps > 0 ? Math.round((step/totalSteps)*100) : 0;
+  document.getElementById("progress-fill").style.width = pct + "%";
+  document.getElementById("step-counter").innerText    = step + " / " + totalSteps;
+}
+
+/* ------------------------------------------------------------------ */
+/* ARRIVED                                                            */
+/* ------------------------------------------------------------------ */
 
 function showArrived() {
-  if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+  if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+
+  // Complete the route line visually
   drawRoute(routeNodeIds, routeNodeIds.length - 1);
+
   document.getElementById("instruction-banner").classList.remove("show");
-  document.getElementById("stop-wrap").style.display = "none";
+  document.getElementById("stop-wrap").style.display  = "none";
   document.getElementById("arrived-card").style.display = "block";
-  document.getElementById("arrived-name").innerText = "You have reached " + destName;
-  setGpsStatus("active","Arrived."); speak("You have arrived at " + destName + ".");
+  document.getElementById("arrived-box").style.display  = "block";
+  document.getElementById("arrived-name").innerText   = "You have reached " + destName;
+  document.getElementById("progress-fill").style.width = "100%";
+  setGpsStatus("active","Arrived at destination.");
+  speak("You have arrived at " + destName + ". Navigation complete.");
 }
+
+/* ------------------------------------------------------------------ */
+/* STOP NAVIGATION                                                    */
+/* ------------------------------------------------------------------ */
 
 function stopNavigation() {
-  if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-  session_id = null; watchId = null; routeNodeIds = [];
-  const bo = document.getElementById("bearing-overlay"); if (bo) bo.remove();
-  if (routeRemaining) map.removeLayer(routeRemaining); if (routeCompleted) map.removeLayer(routeCompleted);
-  if (arrowMarker) map.removeLayer(arrowMarker); waypointMarkers.forEach(m => map.removeLayer(m));
-  
+  if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+  session_id = null; lastSpokenInstruction = ""; userHeading = -1;
+  compassHeading = -1; lastLat = null; lastLng = null;
+  lastStepSpoken = -1; preWarnSpoken = new Set(); continueSpokenAt = -1;
+  routeNodeIds = [];
+  const bo = document.getElementById("bearing-overlay");
+  if (bo) bo.remove();
+
+  // Clear map overlays
+  if (routeRemaining) { map.removeLayer(routeRemaining); routeRemaining = null; }
+  if (routeCompleted) { map.removeLayer(routeCompleted); routeCompleted = null; }
+  if (arrowMarker)    { map.removeLayer(arrowMarker);    arrowMarker = null; }
+  waypointMarkers.forEach(m => map.removeLayer(m)); waypointMarkers = [];
+
+  // Reset all campus dots
   Object.entries(CAMPUS_NODES).forEach(([id, node]) => {
-    L.marker([node.lat, node.lng], {icon: L.divIcon({ className:"", html:`<div class="waypoint-dot" style="opacity:0.5"></div>`, iconSize:[12,12], iconAnchor:[6,6] })}).bindPopup(`<b>${node.name}</b>`).addTo(map);
+    const dot = L.divIcon({ className:"", html:`<div class="waypoint-dot" style="opacity:0.5"></div>`, iconSize:[12,12], iconAnchor:[6,6] });
+    L.marker([node.lat, node.lng], {icon:dot}).bindPopup(`<b>${node.name}</b>`).addTo(map);
   });
 
-  document.getElementById("map").classList.remove("nav-active"); map.invalidateSize();
+  document.getElementById("map").classList.remove("nav-active");
+  map.invalidateSize();
   document.getElementById("instruction-banner").classList.remove("show");
-  document.getElementById("stop-wrap").style.display = "none";
-  document.getElementById("arrived-card").style.display = "none";
-  document.getElementById("setup-card").style.display = "block";
-  setGpsStatus("waiting","Navigation stopped."); speak("Navigation stopped.");
-  map.setView([12.3148, 76.6134], 17); userCentered = true;
+  document.getElementById("stop-wrap").style.display         = "none";
+  document.getElementById("arrived-card").style.display      = "none";
+  document.getElementById("setup-card").style.display        = "block";
+  document.getElementById("start-btn").disabled              = true;
+  document.getElementById("start-select").value              = "";
+  document.getElementById("dest-select").value               = "";
+  document.getElementById("start-select").classList.remove("voice-set");
+  document.getElementById("dest-select").classList.remove("voice-set");
+  document.getElementById("gps-locate-btn").innerText        = "📍 Use My Current Location";
+  document.getElementById("gps-locate-btn").disabled         = false;
+  setVoiceFlowVisible(false);
+  setGpsStatus("waiting","Navigation stopped.");
+  speak("Navigation stopped.");
+  map.setView([12.3148, 76.6134], 17);
+  document.getElementById("recenter-btn").classList.remove("show");
+  userCentered = true;
 }
 
-function gpsError() { setGpsStatus("error","GPS error."); speak("GPS error."); }
+/* ------------------------------------------------------------------ */
+/* GPS ERROR                                                          */
+/* ------------------------------------------------------------------ */
 
-/* ------------------------------------------------------------------ */
-/* INDOOR NAVIGATION (WITH UI STAIRS WARNING)                        */
-/* ------------------------------------------------------------------ */
-let indoorStart = null, indoorSteps = [], indoorStepIdx = 0;
+function gpsError(error) {
+  const msgs = {1:"Location permission denied. Allow it in settings.",2:"GPS unavailable. Move outdoors.",3:"GPS timed out. Move to open area."};
+  const msg = msgs[error.code]||"Unknown GPS error.";
+  setGpsStatus("error",msg); speak(msg);
+}
+
+
+
+/* ================================================================== */
+/* QR CODE SCANNER  — uses native BarcodeDetector (Android Chrome)   */
+/* falls back to jsQR if not available            */
+/* ================================================================== */
+
+let qrStream     = null;
+let qrAnimFrame  = null;
+let qrActive     = false;
+let qrDetector   = null;   // BarcodeDetector instance
+let qrGuideIdx   = 0;
+let qrLastGuide  = 0;
+let qrScanCount  = 0;      // debug: how many frames scanned
+
+// Speak QR guidance — avoids interrupting itself repeatedly
+let _qrLastSpoken = "";
+function speakOnceQR(msg) {
+  if (msg === _qrLastSpoken) return;
+  _qrLastSpoken = msg;
+  speak(msg);
+}
+
+function setQRStatus(status, hint) {
+  const s = document.getElementById("qr-status");
+  const h = document.getElementById("qr-hint");
+  if (s) s.textContent = status;
+  if (h) h.textContent = hint;
+}
+
+const QR_GUIDES = [
+  "Move the phone closer to the QR code.",
+  "Move the phone to the left.",
+  "Move the phone to the right.",
+  "Move the phone up.",
+  "Move the phone down.",
+  "Try tilting the camera slightly.",
+  "Move the phone back a little.",
+  "Make sure the QR code is well lit.",
+];
+
+/* ── OPEN ─────────────────────────────────────────────────────────── */
+async function openQRScanner() {
+  const overlay = document.getElementById("qr-overlay");
+  overlay.classList.add("show");
+  qrActive    = true;
+  qrGuideIdx  = 0;
+  qrLastGuide = Date.now();
+  qrScanCount = 0;
+
+  setQRStatus("📷 Starting camera...", "Please allow camera access");
+
+  // ── STEP 1: Start camera FIRST (don't wait for scanner check) ──────
+  try {
+    qrStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment", width:{ideal:1280}, height:{ideal:720} }
+    });
+  } catch(e1) {
+    try {
+      // Fallback: any camera, no constraints
+      qrStream = await navigator.mediaDevices.getUserMedia({ video: true });
+    } catch(e2) {
+      setQRStatus("❌ Camera access denied", "Go to browser settings → allow camera → try again");
+      speak("Camera access denied. Please allow camera permission in your browser settings and try again.");
+      return;
+    }
+  }
+
+  // Attach stream to video element
+  const video = document.getElementById("qr-video");
+  video.srcObject = qrStream;
+  video.setAttribute("playsinline", "true");
+  video.setAttribute("autoplay", "true");
+  video.muted = true;
+
+  // Force play with multiple attempts
+  const playVideo = async () => {
+    try { await video.play(); } catch(e) {}
+  };
+
+  // Wait for video to actually show frames
+  await new Promise((resolve) => {
+    let resolved = false;
+    const done = () => { if (!resolved) { resolved = true; resolve(); } };
+
+    video.onloadedmetadata = () => { playVideo(); };
+    video.oncanplay       = done;
+    video.onplaying       = done;
+
+    playVideo();
+
+    // Hard timeout — proceed anyway after 2.5s
+    setTimeout(done, 2500);
+  });
+
+  // Extra check — if video dimensions are 0 try playing again
+  if (!video.videoWidth) {
+    await playVideo();
+    await new Promise(r => setTimeout(r, 500));
+  }
+
+  setQRStatus("📷 Camera active — looking for QR code", "Point camera at the QR code");
+  speak("Camera ready. Point your camera at the QR code.");
+  document.getElementById("qr-indicator-bar").style.width = "0%";
+
+  // ── STEP 2: Detect scanner method ────────────────────────────────────
+  let method = "jsQR"; // default fallback
+
+  if (typeof BarcodeDetector !== "undefined") {
+    try {
+      // Use a short timeout so it doesn't hang
+      const formatsPromise = BarcodeDetector.getSupportedFormats();
+      const formats = await Promise.race([
+        formatsPromise,
+        new Promise(r => setTimeout(() => r([]), 1000))
+      ]);
+      if (formats.includes("qr_code")) {
+        qrDetector = new BarcodeDetector({ formats: ["qr_code"] });
+        method = "BarcodeDetector";
+      }
+    } catch(e) {}
+  }
+
+  if (method === "BarcodeDetector") {
+    qrLoopDetector();
+  } else if (typeof jsQR !== "undefined") {
+    qrAnimFrame = requestAnimationFrame(qrLoopJsQR);
+  } else {
+    // Last resort: try BarcodeDetector without format check
+    if (typeof BarcodeDetector !== "undefined") {
+      try {
+        qrDetector = new BarcodeDetector({ formats: ["qr_code"] });
+        qrLoopDetector();
+      } catch(e) {
+        setQRStatus("❌ QR scanner unavailable", "Please use Chrome on Android");
+        speak("QR scanning not supported. Please use Google Chrome.");
+      }
+    } else {
+      setQRStatus("❌ QR scanner unavailable", "Please use Chrome on Android");
+      speak("QR scanning not supported on this browser. Please use Google Chrome.");
+    }
+  }
+}
+
+/* ── METHOD 1: Native BarcodeDetector ──────────────────────────────── */
+async function qrLoopDetector() {
+  if (!qrActive) return;
+  const video = document.getElementById("qr-video");
+
+  try {
+    const barcodes = await qrDetector.detect(video);
+    qrScanCount++;
+
+    if (barcodes.length > 0) {
+      qrHandleResult(barcodes[0].rawValue, null, video);
+      return;
+    }
+  } catch(e) {}
+
+  // Voice guidance every 5s
+  const now = Date.now();
+  if (now - qrLastGuide > 5000) {
+    qrLastGuide = now;
+    const msg = QR_GUIDES[qrGuideIdx % QR_GUIDES.length];
+    qrGuideIdx++;
+    setQRStatus("📷 Scanning...", msg + "");
+    speakOnceQR(msg);
+  }
+
+  setTimeout(qrLoopDetector, 200);  // scan 5x per second
+}
+
+/* ── METHOD 2: jsQR fallback ─────────────────────────────────────── */
+function qrLoopJsQR(ts) {
+  if (!qrActive) return;
+  const video  = document.getElementById("qr-video");
+  const canvas = document.getElementById("qr-canvas");
+
+  if (video.videoWidth && video.videoHeight) {
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0);
+    qrScanCount++;
+
+    try {
+      const img  = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(img.data, img.width, img.height, { inversionAttempts: "attemptBoth" });
+      if (code && code.data) {
+        qrHandleResult(code.data, code.location, video);
+        return;
+      }
+    } catch(e) {
+      setQRStatus("jsQR error: " + e.message, "");
+    }
+  }
+
+  // Voice guidance every 5s
+  const now = Date.now();
+  if (now - qrLastGuide > 5000) {
+    qrLastGuide = now;
+    const msg = QR_GUIDES[qrGuideIdx % QR_GUIDES.length];
+    qrGuideIdx++;
+    setQRStatus("📷 Scanning...", msg);
+    speakOnceQR(msg);
+  }
+
+  qrAnimFrame = requestAnimationFrame(qrLoopJsQR);
+}
+
+/* ── HANDLE RESULT ───────────────────────────────────────────────── */
+async function qrHandleResult(data, location, video) {
+  qrActive = false;
+  if (qrAnimFrame) { cancelAnimationFrame(qrAnimFrame); qrAnimFrame = null; }
+
+  document.getElementById("qr-indicator-bar").style.width = "100%";
+  setQRStatus("✅ Scanned: " + data, "");
+  speak("QR code scanned. " + data);
+
+  await new Promise(r => setTimeout(r, 600));
+  closeQRScanner();
+  await matchQRToLocation(data.trim());
+}
+
+/* ── CLOSE ───────────────────────────────────────────────────────── */
+function closeQRScanner() {
+  qrActive = false;
+  if (qrAnimFrame) { cancelAnimationFrame(qrAnimFrame); qrAnimFrame = null; }
+  if (qrStream)    { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
+  document.getElementById("qr-overlay").classList.remove("show");
+  document.getElementById("qr-indicator-bar").style.width = "0%";
+}
+
+/* ── MATCH TO LOCATION ───────────────────────────────────────────── */
+async function matchQRToLocation(data) {
+  if (data.startsWith("indoor_")) {
+    await startIndoorNavigation(data);
+    return;
+  }
+  try {
+    const res  = await fetch("/locations");
+    const locs = await res.json();
+    const low  = data.toLowerCase();
+    let matched = null;
+    for (const loc of locs) {
+      if (loc.id === data || loc.name.toLowerCase() === low ||
+          loc.name.toLowerCase().includes(low)) {
+        matched = loc; break;
+      }
+    }
+    if (matched) {
+      speak("You are at " + matched.name + ". Setting as your starting location.");
+      const sel = document.getElementById("start-select");
+      sel.value = matched.id;
+      sel.classList.add("voice-set");
+      document.getElementById("start-btn").disabled = !document.getElementById("dest-select").value;
+      setGpsStatus("active", "📷 Location: " + matched.name);
+      await new Promise(r => setTimeout(r, 2800));
+      speak("Where would you like to go? Select a destination or tap the mic.");
+    } else {
+      speak("QR code read as: " + data + ". Location not found in campus map.");
+      setGpsStatus("error", "Not found: " + data);
+    }
+  } catch(e) {
+    speak("Could not connect to server. Please try again.");
+  }
+}
+
+/* ── Indoor destination picker ───────────────────────────────────── */
+
+/* ================================================================== */
+/* INDOOR NAVIGATION — Admin Block                                    */
+/* ================================================================== */
+
+let indoorStart   = null;
+let indoorSteps   = [];
+let indoorStepIdx = 0;
 
 async function startIndoorNavigation(locationId) {
   let locName = locationId;
-  try { const r = await fetch("/indoor/locations"); const locs = await r.json(); locName = locs[locationId]?.name || locationId; } catch(e) {}
-  indoorStart = locationId; speak("You are at " + locName + ". Select destination.");
-
-  let dests = [];
   try {
-    const r = await fetch("/indoor/navigate", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({start: locationId}) });
-    dests = (await r.json()).destinations || [];
+    const r = await fetch("/indoor/locations");
+    const locs = await r.json();
+    locName = (locs[locationId] || {}).name || locationId;
   } catch(e) {}
 
-  if (!dests.length) { speak("No indoor routes available."); return; }
+  indoorStart = locationId;
+  speak("You are at " + locName + " in the Admin Block.");
+  setGpsStatus("active", "🏢 Indoor: " + locName);
+  await new Promise(r => setTimeout(r, 2000));
+
+  // Get possible destinations
+  let dests = [];
+  try {
+    const r = await fetch("/indoor/navigate", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({start: locationId})
+    });
+    const d = await r.json();
+    dests = d.destinations || [];
+  } catch(e) {}
+
+  if (!dests.length) {
+    speak("No indoor routes available from this location.");
+    return;
+  }
 
   renderIndoorPanel(`
+    <div style="font-size:13px;color:#7a8dab;margin-bottom:4px;">🏢 Admin Block — Indoor Navigation</div>
     <div style="font-size:15px;font-weight:700;margin-bottom:14px;">📍 ${locName}</div>
+    <div style="font-size:13px;color:#7a8dab;margin-bottom:8px;">Select destination:</div>
     <div style="display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;">
       ${dests.map(d => `<button class="ind-btn" onclick="selectIndoorDest('${d.id}','${d.name.replace(/'/g,"\\'")}')">🚪 ${d.name}</button>`).join("")}
     </div>
     <button class="ind-cancel" onclick="closeIndoorPanel()">✕ Cancel</button>
   `);
+  speak("Where would you like to go? " + dests.map(d=>d.name).slice(0,4).join(", "));
 }
 
 async function selectIndoorDest(destId, destName) {
-  speak("Getting directions to " + destName);
+  speak("Getting directions to " + destName + ".");
   try {
-    const res = await fetch("/indoor/route", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({start: indoorStart, destination: destId}) });
+    const res  = await fetch("/indoor/route", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({start: indoorStart, destination: destId})
+    });
     const data = await res.json();
     if (data.found) {
-      indoorSteps = data.steps; indoorStepIdx = 0;
-      // Show Visual UX Warning if stairs are involved
-      if (destId.includes("stairs") || destName.toLowerCase().includes("stair")) { showStairsWarning(destId, destName); } 
-      else { renderCurrentStep(destName); }
-    } else speak("No route found.");
-  } catch(e) {}
+      indoorSteps   = data.steps;
+      indoorStepIdx = 0;
+
+      // If route uses stairs, show a prominent modal warning first
+      if (data.uses_stairs && data.has_lift_alternative) {
+        showStairsWarning(destId, destName);
+      } else {
+        renderCurrentStep(destName);
+      }
+    } else {
+      speak("Sorry, no route found to " + destName);
+    }
+  } catch(e) {
+    speak("Could not get directions. Please try again.");
+  }
 }
 
 function showStairsWarning(destId, destName) {
   renderIndoorPanel(`
     <div style="text-align:center;padding:8px 0 16px;">
       <div style="font-size:40px;margin-bottom:8px;">⚠️</div>
-      <div style="font-size:17px;font-weight:700;color:#ffb800;margin-bottom:8px;">Staircase Ahead</div>
-      <div style="font-size:13px;color:#7a8dab;margin-bottom:20px;">This route uses stairs. We recommend taking the lift.</div>
-      <button class="ind-btn" style="background:linear-gradient(135deg,#00d4ff20,#00d4ff40); border-color:#00d4ff;color:#00d4ff;" onclick="rerouteViaLift('${destId}','${destName.replace(/'/g,"\\'")}')">🛗 Use Lift Instead</button>
-      <button class="ind-btn" style="margin-top:10px;color:#ffb800;border-color:#ffb800;" onclick="proceedWithStairs('${destName.replace(/'/g,"\\'")}')">🚶 Proceed with Stairs</button>
+      <div style="font-size:17px;font-weight:700;color:#ffb800;margin-bottom:8px;">Staircase on this route</div>
+      <div style="font-size:13px;color:#7a8dab;line-height:1.6;margin-bottom:20px;">
+        The route to <b style="color:#e8f0fe;">${destName}</b> uses a staircase.<br>
+        If you have difficulty using stairs, we recommend taking the <b style="color:#00d4ff;">lift</b> instead.
+      </div>
+      <button class="ind-btn" style="margin-bottom:10px;background:linear-gradient(135deg,#00d4ff20,#00d4ff40);
+              border-color:#00d4ff;color:#00d4ff;font-weight:700;font-size:15px;"
+              onclick="rerouteViaLift('${destId}','${destName.replace(/'/g,"\\'")}')">
+        🛗 Use Lift Instead (Recommended)
+      </button>
+      <button class="ind-btn" style="margin-bottom:10px;color:#ffb800;border-color:#ffb800;"
+              onclick="proceedWithStairs('${destName.replace(/'/g,"\\'")}')">
+        🚶 I can use stairs — Continue
+      </button>
+      <button class="ind-cancel" onclick="closeIndoorPanel()">✕ Cancel</button>
     </div>
   `);
-  speak("Warning. This route uses a staircase. Would you like to use the lift instead?");
+  speak("Warning. This route uses a staircase. Would you like to use the lift instead? It is safer and recommended.");
 }
 
 async function rerouteViaLift(destId, destName) {
-  speak("Rerouting via lift.");
+  speak("Rerouting via lift. No stairs on this path.");
   try {
-    const res = await fetch("/indoor/route", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({start: indoorStart, destination: destId, use_lift: true}) });
+    const res = await fetch("/indoor/route", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({start: indoorStart, destination: destId, use_lift: true})
+    });
     const data = await res.json();
-    if (data.found) { indoorSteps = data.steps; indoorStepIdx = 0; renderCurrentStep(destName); } 
-    else { speak("No lift route. Showing original."); renderCurrentStep(destName); }
-  } catch(e) { renderCurrentStep(destName); }
+    if (data.found) {
+      indoorSteps   = data.steps;
+      indoorStepIdx = 0;
+      renderCurrentStep(destName);
+    } else {
+      speak("Sorry, no lift-only route available. Showing original route.");
+      renderCurrentStep(destName);
+    }
+  } catch(e) {
+    speak("Could not get lift route. Showing original.");
+    renderCurrentStep(destName);
+  }
 }
 
-function proceedWithStairs(destName) { speak("Proceeding with stairs."); renderCurrentStep(destName); }
+function proceedWithStairs(destName) {
+  speak("Okay. Proceeding with stairs. Please hold the handrail and walk carefully.");
+  renderCurrentStep(destName);
+}
 
 function renderCurrentStep(destName) {
-  if (indoorStepIdx >= indoorSteps.length) { speak("Arrived at destination."); setTimeout(closeIndoorPanel, 3000); return; }
-  const step = indoorSteps[indoorStepIdx], prog = indoorStepIdx + 1, total = indoorSteps.length;
+  if (indoorStepIdx >= indoorSteps.length) {
+    speak("You have arrived at your destination.");
+    setTimeout(closeIndoorPanel, 3000);
+    return;
+  }
+  const step  = indoorSteps[indoorStepIdx];
+  const prog  = indoorStepIdx + 1;
+  const total = indoorSteps.length;
 
   renderIndoorPanel(`
-    <div style="font-size:12px;color:#7a8dab;margin-bottom:6px;">Step ${prog} of ${total}</div>
-    <div style="background:#1a2235;border-left:3px solid #00d4ff;padding:14px;border-radius:8px;font-size:16px;margin-bottom:16px;">${step}</div>
-    <div style="display:flex;gap:8px;margin-bottom:8px;">
-      ${prog > 1 ? `<button class="ind-btn" style="flex:1" onclick="indoorStepIdx--; renderCurrentStep();">← Back</button>` : ""}
-      <button class="ind-btn" style="flex:2;background:linear-gradient(135deg,#00d4ff20,#00d4ff40);border-color:#00d4ff;color:#00d4ff;" onclick="indoorStepIdx++; renderCurrentStep();">${prog < total ? "Next →" : "✅ Arrived"}</button>
+    <div style="font-size:12px;color:#7a8dab;margin-bottom:6px;">🏢 Admin Block &nbsp;·&nbsp; Step ${prog} of ${total}</div>
+    <div style="background:#1a2235;border-left:3px solid #00d4ff;padding:14px;
+                border-radius:8px;font-size:16px;line-height:1.6;margin-bottom:16px;">
+      ${step}
     </div>
-    <button onclick="speak('${step.replace(/'/g,"\\'")}')" class="ind-btn" style="margin-bottom:6px;">🔊 Repeat</button>
-    <button class="ind-cancel" onclick="closeIndoorPanel()">✕ Stop</button>
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      ${prog > 1 ? `<button class="ind-btn" style="flex:1" onclick="indoorPrev()">← Back</button>` : ""}
+      <button class="ind-btn" style="flex:2;background:linear-gradient(135deg,#00d4ff20,#00d4ff40);
+        border-color:#00d4ff;color:#00d4ff;font-weight:700;" onclick="indoorNext()">
+        ${prog < total ? "Next →" : "✅ Arrived"}
+      </button>
+    </div>
+    <button onclick="speak(indoorSteps[indoorStepIdx])" class="ind-btn" style="width:100%;margin-bottom:6px;">
+      🔊 Repeat Instruction
+    </button>
+    <button class="ind-cancel" onclick="closeIndoorPanel()">✕ Stop Indoor Navigation</button>
   `);
   speak(step);
 }
 
+function indoorNext() {
+  indoorStepIdx++;
+  renderCurrentStep("");
+}
+function indoorPrev() {
+  if (indoorStepIdx > 0) { indoorStepIdx--; renderCurrentStep(""); }
+}
+
 function renderIndoorPanel(html) {
   let p = document.getElementById("indoor-panel");
-  if (!p) { p = document.createElement("div"); p.id = "indoor-panel"; document.body.appendChild(p); }
-  p.style.cssText = `position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto; background:#131929;border-top:2px solid #00d4ff;border-radius:20px 20px 0 0; padding:20px;z-index:4000;color:#e8f0fe;`;
+  if (!p) {
+    p = document.createElement("div");
+    p.id = "indoor-panel";
+    document.body.appendChild(p);
+  }
+  p.style.cssText = `
+    position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;
+    background:#131929;border-top:2px solid #00d4ff;border-radius:20px 20px 0 0;
+    padding:20px;z-index:4000;font-family:'Sora',sans-serif;color:#e8f0fe;
+    box-shadow:0 -4px 24px rgba(0,212,255,0.15);
+  `;
+  // Inject shared button styles once
   if (!document.getElementById("ind-styles")) {
-    const s = document.createElement("style"); s.id = "ind-styles";
-    s.textContent = `.ind-btn{background:#1a2235;border:1px solid #2a3a55;color:#e8f0fe;padding:12px 16px;border-radius:12px;cursor:pointer;width:100%;} .ind-cancel{margin-top:8px;width:100%;padding:10px;background:transparent;border:1px solid #ff4d6d;color:#ff4d6d;border-radius:12px;cursor:pointer;}`;
+    const s = document.createElement("style");
+    s.id = "ind-styles";
+    s.textContent = `
+      .ind-btn{background:#1a2235;border:1px solid #2a3a55;color:#e8f0fe;padding:12px 16px;
+               border-radius:12px;font-size:14px;cursor:pointer;font-family:'Sora',sans-serif;width:100%;}
+      .ind-btn:active{opacity:0.7;}
+      .ind-cancel{margin-top:8px;width:100%;padding:10px;background:transparent;
+                  border:1px solid #ff4d6d;color:#ff4d6d;border-radius:12px;
+                  font-size:13px;cursor:pointer;font-family:'Sora',sans-serif;}
+    `;
     document.head.appendChild(s);
   }
-  p.innerHTML = html; p.style.display = "block";
+  p.innerHTML = html;
+  p.style.display = "block";
 }
-function closeIndoorPanel() { const p = document.getElementById("indoor-panel"); if (p) p.style.display = "none"; indoorSteps=[]; indoorStepIdx=0; }
+
+function closeIndoorPanel() {
+  const p = document.getElementById("indoor-panel");
+  if (p) p.style.display = "none";
+  indoorSteps=[]; indoorStepIdx=0; indoorStart=null;
+}
+
+/* ================================================================== */
+/* INDOOR NAVIGATION — Dashboard button entry point                  */
+/* ================================================================== */
+
+async function openIndoorNav() {
+  // Fetch all indoor locations and let user pick their starting point
+  let locs = {};
+  try {
+    const r = await fetch("/indoor/locations");
+    locs = await r.json();
+  } catch(e) {
+    speak("Could not load indoor map. Please check your connection.");
+    return;
+  }
+
+  // Build a list of all indoor starting points that have outgoing routes
+  let startPoints = [];
+  try {
+    // We'll show lift/stairs/exit as entry points (common starting points)
+    const entryIds = [
+      "indoor_lift_ground", "indoor_lift_first", "indoor_lift_second",
+      "indoor_stairs_top", "indoor_stairs_mid", "indoor_stairs_ground",
+      "indoor_admin_exit"
+    ];
+    for (const id of entryIds) {
+      if (locs[id]) startPoints.push({ id, name: locs[id].name, floor: locs[id].floor });
+    }
+    // Also add room-level starts if they have routes
+    for (const [id, info] of Object.entries(locs)) {
+      if (!entryIds.includes(id)) startPoints.push({ id, name: info.name, floor: info.floor });
+    }
+  } catch(e) {}
+
+  // Sort by floor then name
+  startPoints.sort((a, b) => a.floor - b.floor || a.name.localeCompare(b.name));
+
+  const floorLabel = f => f === 0 ? "Ground" : f === 1 ? "1st Floor" : f === 2 ? "2nd Floor" : `Floor ${f}`;
+
+  renderIndoorPanel(`
+    <div style="font-size:13px;color:#7a8dab;margin-bottom:4px;">🏢 Admin Block — Indoor Navigation</div>
+    <div style="font-size:15px;font-weight:700;margin-bottom:14px;">Where are you now?</div>
+    <div style="font-size:13px;color:#7a8dab;margin-bottom:8px;">Select your current location:</div>
+    <div style="display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;">
+      ${startPoints.map(p => `
+        <button class="ind-btn" onclick="selectIndoorStart('${p.id}','${p.name.replace(/'/g,"\\'")}')">
+          <span style="font-size:11px;color:#7a8dab;display:block;">${floorLabel(p.floor)}</span>
+          📍 ${p.name}
+        </button>`).join("")}
+    </div>
+    <button class="ind-cancel" onclick="closeIndoorPanel()">✕ Cancel</button>
+  `);
+  speak("Indoor navigation. Where are you now? Select your current location.");
+}
+
+async function selectIndoorStart(locationId, locationName) {
+  indoorStart = locationId;
+  speak("Got it. You are at " + locationName + ". Where would you like to go?");
+  await new Promise(r => setTimeout(r, 1800));
+  await startIndoorNavigation(locationId);
+}
