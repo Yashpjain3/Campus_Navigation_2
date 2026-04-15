@@ -1406,12 +1406,25 @@ function renderCurrentStep(destName) {
   const prog  = indoorStepIdx + 1;
   const total = indoorSteps.length;
 
+  // Check if this step involves stairs — show lift option
+  const stepLower = step.toLowerCase();
+  const isStairStep = stepLower.includes("stair") || stepLower.includes("handrail") ||
+                      stepLower.includes("descend") || stepLower.includes("climb down");
+
+  const liftBtnHtml = isStairStep ? `
+    <button id="ind-use-lift-btn" class="ind-btn"
+      style="width:100%;margin-bottom:8px;background:linear-gradient(135deg,#00d4ff22,#00d4ff44);
+             border-color:#00d4ff;color:#00d4ff;font-weight:600;">
+      🛗 Use Lift Instead (Recommended)
+    </button>` : "";
+
   renderIndoorPanel(`
     <div style="font-size:12px;color:#7a8dab;margin-bottom:6px;">🏢 Admin Block &nbsp;·&nbsp; Step ${prog} of ${total}</div>
     <div style="background:#1a2235;border-left:3px solid #00d4ff;padding:14px;
                 border-radius:8px;font-size:16px;line-height:1.6;margin-bottom:16px;">
       ${step}
     </div>
+    ${liftBtnHtml}
     <div style="display:flex;gap:8px;margin-bottom:8px;">
       ${prog > 1 ? `<button class="ind-btn" style="flex:1" onclick="indoorPrev()">← Back</button>` : ""}
       <button class="ind-btn" style="flex:2;background:linear-gradient(135deg,#00d4ff20,#00d4ff40);
@@ -1419,12 +1432,85 @@ function renderCurrentStep(destName) {
         ${prog < total ? "Next →" : "✅ Arrived"}
       </button>
     </div>
-    <button onclick="speak(indoorSteps[indoorStepIdx])" class="ind-btn" style="width:100%;margin-bottom:6px;">
-      🔊 Repeat Instruction
-    </button>
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <button onclick="speak(indoorSteps[indoorStepIdx])" class="ind-btn" style="flex:1;">
+        🔊 Repeat
+      </button>
+      <button id="ind-mic-btn" class="ind-btn" style="flex:1;background:#1a2235;border-color:#00ff9d;color:#00ff9d;"
+        onclick="startIndoorVoiceCommand()">
+        🎙️ Voice Command
+      </button>
+    </div>
     <button class="ind-cancel" onclick="closeIndoorPanel()">✕ Stop Indoor Navigation</button>
   `);
+
+  // Attach lift button listener after render
+  const liftBtn = document.getElementById("ind-use-lift-btn");
+  if (liftBtn) {
+    liftBtn.addEventListener("click", () => {
+      if (window._stairDestId) {
+        rerouteViaLift(window._stairDestId, window._stairDestName || "destination");
+      } else {
+        speak("Please go back and select your destination again to use the lift route.");
+      }
+    });
+  }
+
   speak(step);
+}
+
+// ── VOICE COMMAND DURING INDOOR NAV ──────────────────────────────────
+function startIndoorVoiceCommand() {
+  const micBtn = document.getElementById("ind-mic-btn");
+  if (micBtn) { micBtn.innerText = "🔴 Listening..."; micBtn.disabled = true; }
+  speak("Listening. Say: use lift, repeat, next step, or back.");
+
+  listenYesNo = null; // reset
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    speak("Voice commands not supported on this browser.");
+    if (micBtn) { micBtn.innerText = "🎙️ Voice Command"; micBtn.disabled = false; }
+    return;
+  }
+
+  const rec = new SR();
+  rec.lang = "en-US"; rec.maxAlternatives = 3; rec.continuous = false;
+
+  rec.onresult = (e) => {
+    const said = (e.results[0][0].transcript || "").toLowerCase().trim();
+    if (micBtn) { micBtn.innerText = "🎙️ Voice Command"; micBtn.disabled = false; }
+
+    if (said.includes("lift") || said.includes("elevator")) {
+      if (window._stairDestId) {
+        speak("Rerouting via lift.");
+        rerouteViaLift(window._stairDestId, window._stairDestName || "destination");
+      } else {
+        speak("No lift route available for the current destination.");
+      }
+    } else if (said.includes("next") || said.includes("continue")) {
+      indoorNext();
+    } else if (said.includes("back") || said.includes("previous")) {
+      indoorPrev();
+    } else if (said.includes("repeat") || said.includes("again")) {
+      speak(indoorSteps[indoorStepIdx] || "No instruction.");
+    } else if (said.includes("stop") || said.includes("cancel")) {
+      closeIndoorPanel();
+    } else {
+      speak("I heard: " + said + ". Say use lift, next step, back, or repeat.");
+    }
+  };
+
+  rec.onerror = () => {
+    if (micBtn) { micBtn.innerText = "🎙️ Voice Command"; micBtn.disabled = false; }
+    speak("Could not hear you. Please try again.");
+  };
+
+  rec.onend = () => {
+    if (micBtn) { micBtn.innerText = "🎙️ Voice Command"; micBtn.disabled = false; }
+  };
+
+  setTimeout(() => { try { rec.start(); } catch(e) {} }, 600);
 }
 
 function indoorNext() {
