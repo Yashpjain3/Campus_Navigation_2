@@ -573,15 +573,49 @@ def indoor_locations():
 
 @app.route("/indoor/route", methods=["POST"])
 def indoor_route():
-    data  = request.json
-    start = data.get("start", "").strip()
-    dest  = data.get("destination", "").strip()
-    key   = start + "→" + dest
-    if key in _indoor["routes"]:
-        return jsonify({"steps": _indoor["routes"][key], "found": True})
+    data     = request.json
+    start    = data.get("start", "").strip()
+    dest     = data.get("destination", "").strip()
+    use_lift = data.get("use_lift", False)
+
+    key = start + "→" + dest
     rev = dest + "→" + start
-    if rev in _indoor["routes"]:
-        return jsonify({"steps": list(reversed(_indoor["routes"][rev])), "found": True})
+
+    steps = None
+    if key in _indoor["routes"]:
+        steps = _indoor["routes"][key]
+    elif rev in _indoor["routes"]:
+        steps = list(reversed(_indoor["routes"][rev]))
+
+    if steps is None:
+        return jsonify({"found": False, "message": "No indoor route found."})
+
+    # Detect if route uses stairs
+    stair_keywords = ["stair", "handrail", "descend", "climb down"]
+    uses_stairs = any(
+        any(kw in s.lower() for kw in stair_keywords)
+        for s in steps
+    )
+
+    # Find lift alternative if stairs detected
+    has_lift_alternative = False
+    lift_steps = None
+    if uses_stairs:
+        # Try to find a route via lift from same start
+        for floor in ["indoor_lift_ground", "indoor_lift_first", "indoor_lift_second"]:
+            lift_key = floor + "→" + dest
+            if lift_key in _indoor["routes"]:
+                has_lift_alternative = True
+                lift_steps = _indoor["routes"][lift_key]
+                break
+
+    if use_lift and has_lift_alternative and lift_steps:
+        return jsonify({"steps": lift_steps, "found": True,
+                        "uses_stairs": False, "has_lift_alternative": False})
+
+    return jsonify({"steps": steps, "found": True,
+                    "uses_stairs": uses_stairs,
+                    "has_lift_alternative": has_lift_alternative})
     return jsonify({"found": False, "message": "No indoor route found."})
 
 @app.route("/indoor/navigate", methods=["POST"])
