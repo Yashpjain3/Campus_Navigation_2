@@ -5,7 +5,7 @@
    ============================================================ */
 
 /* ------------------------------------------------------------------ */
-/* CAMPUS NODE COORDINATES (embedded for map use)                    */
+/*  CAMPUS NODE COORDINATES (embedded for map use)                    */
 /* ------------------------------------------------------------------ */
 
 const CAMPUS_NODES = {
@@ -41,7 +41,7 @@ const CAMPUS_NODES = {
 };
 
 /* ------------------------------------------------------------------ */
-/* STATE                                                              */
+/*  STATE                                                              */
 /* ------------------------------------------------------------------ */
 
 let session_id      = null;
@@ -56,50 +56,64 @@ let lastLng     = null;
 let userHeading = -1;
 let compassHeading = -1;
 
-// Use phone compass if available (works even when standing still)
+// ── Compass / heading  ──────────────────────────────────────────────
+// Android Chrome: deviceorientationabsolute gives a true-north bearing
+// iOS Safari: webkitCompassHeading on deviceorientation
+// Fallback: GPS movement bearing when moving > 3 m
+
+let _compassSamples  = [];   // rolling buffer for smoothing
+const COMPASS_SMOOTH = 6;    // samples to average (≈ 0.6 s at 10 Hz)
+
 function startCompass() {
-  if (typeof DeviceOrientationEvent !== 'undefined' &&
-      typeof DeviceOrientationEvent.requestPermission === 'function') {
-    // iOS 13+ requires permission
-    DeviceOrientationEvent.requestPermission().then(state => {
-      if (state === 'granted') listenOrientation();
-    }).catch(() => {});
+  if (typeof DeviceOrientationEvent !== "undefined" &&
+      typeof DeviceOrientationEvent.requestPermission === "function") {
+    DeviceOrientationEvent.requestPermission()
+      .then(s => { if (s === "granted") listenOrientation(); })
+      .catch(() => {});
   } else {
     listenOrientation();
   }
 }
 
 function listenOrientation() {
-  window.addEventListener('deviceorientationabsolute', handleOrientation, true);
-  window.addEventListener('deviceorientation', handleOrientation, true);
+  // Prefer absolute (Android) — gives true-north without mag offset
+  window.addEventListener("deviceorientationabsolute", handleOrientation, true);
+  // Fallback for devices that only fire non-absolute
+  window.addEventListener("deviceorientation", handleOrientation, true);
 }
 
-// UPGRADE 1: Rolling average for compass smoothing (from script2.js)
-let _compassHistory = [];
-
 function handleOrientation(e) {
-  let heading = null;
-  if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null) {
-    heading = e.webkitCompassHeading;            // iOS
-  } else if (e.absolute && e.alpha !== null) {
-    heading = (360 - e.alpha) % 360;             // Android absolute
-  } else if (!e.absolute && e.alpha !== null) {
-    heading = (360 - e.alpha) % 360;             // Android non-absolute fallback
-  }
-  
-  if (heading !== null && !isNaN(heading)) {
-    _compassHistory.push(heading);
-    if (_compassHistory.length > 5) _compassHistory.shift();
-    // Circular mean to avoid 0/360 wraparound errors
-    let sinSum = 0, cosSum = 0;
-    for (const h of _compassHistory) {
-      sinSum += Math.sin(h * Math.PI / 180);
-      cosSum += Math.cos(h * Math.PI / 180);
+  let raw = null;
+
+  if (e.webkitCompassHeading != null && !isNaN(e.webkitCompassHeading)) {
+    // iOS — already true north, 0-360
+    raw = e.webkitCompassHeading;
+  } else if (e.absolute === true && e.alpha != null) {
+    // Android absolute — alpha is CCW from true north, convert to CW
+    raw = (360 - e.alpha % 360 + 360) % 360;
+  } else if (e.alpha != null && !e.absolute) {
+    // Non-absolute fallback (magnetic, may drift) — use only if nothing else
+    if (compassHeading < 0) {
+      raw = (360 - e.alpha % 360 + 360) % 360;
     }
-    const smoothed = (Math.atan2(sinSum, cosSum) * 180 / Math.PI + 360) % 360;
-    compassHeading = smoothed;
-    userHeading    = smoothed; // prefer compass over GPS movement heading
   }
+
+  if (raw === null || isNaN(raw)) return;
+
+  // Circular rolling average (handles 359→1 wrap correctly)
+  _compassSamples.push(raw);
+  if (_compassSamples.length > COMPASS_SMOOTH) _compassSamples.shift();
+
+  // Circular mean
+  let sinSum = 0, cosSum = 0;
+  for (const s of _compassSamples) {
+    sinSum += Math.sin(s * Math.PI / 180);
+    cosSum += Math.cos(s * Math.PI / 180);
+  }
+  const smoothed = (Math.atan2(sinSum, cosSum) * 180 / Math.PI + 360) % 360;
+
+  compassHeading = smoothed;
+  userHeading    = smoothed;   // compass always preferred over GPS movement
 }
 
 // Full route node IDs for map drawing
@@ -107,7 +121,7 @@ let routeNodeIds  = [];
 let roadGeometry  = [];  // per-step road waypoints from server
 
 /* ------------------------------------------------------------------ */
-/* MAP SETUP                                                          */
+/*  MAP SETUP                                                          */
 /* ------------------------------------------------------------------ */
 
 let map, streetLayer, satelliteLayer, isSatellite = false;
@@ -182,7 +196,7 @@ function recenterMap() {
 }
 
 /* ------------------------------------------------------------------ */
-/* ARROW MARKER (direction of movement)                              */
+/*  ARROW MARKER (direction of movement)                              */
 /* ------------------------------------------------------------------ */
 
 function createArrowIcon(heading) {
@@ -216,7 +230,7 @@ function updateArrowMarker(lat, lng, heading) {
 }
 
 /* ------------------------------------------------------------------ */
-/* ROUTE DRAWING                                                      */
+/*  ROUTE DRAWING                                                      */
 /* ------------------------------------------------------------------ */
 
 function drawRoute(nodeIds, completedUpTo) {
@@ -311,7 +325,7 @@ function drawRoute(nodeIds, completedUpTo) {
 }
 
 /* ------------------------------------------------------------------ */
-/* SPEAK                                                              */
+/*  SPEAK                                                              */
 /* ------------------------------------------------------------------ */
 
 function speak(text, onEnd) {
@@ -326,7 +340,7 @@ function speak(text, onEnd) {
 }
 
 /* ------------------------------------------------------------------ */
-/* LISTEN                                                             */
+/*  LISTEN                                                             */
 /* ------------------------------------------------------------------ */
 
 function listen() {
@@ -344,7 +358,7 @@ function listen() {
 }
 
 /* ------------------------------------------------------------------ */
-/* MATCH SPOKEN TEXT                                                  */
+/*  MATCH SPOKEN TEXT                                                  */
 /* ------------------------------------------------------------------ */
 
 function matchLocation(transcripts) {
@@ -367,7 +381,7 @@ function matchLocation(transcripts) {
 }
 
 /* ------------------------------------------------------------------ */
-/* HEADING                                                            */
+/*  HEADING                                                            */
 /* ------------------------------------------------------------------ */
 
 function computeHeading(lat1, lng1, lat2, lng2) {
@@ -379,7 +393,7 @@ function computeHeading(lat1, lng1, lat2, lng2) {
 }
 
 /* ------------------------------------------------------------------ */
-/* VOICE FLOW                                                         */
+/*  VOICE FLOW                                                         */
 /* ------------------------------------------------------------------ */
 
 async function runVoiceSetup() {
@@ -453,7 +467,7 @@ async function askVoiceLocation(which) {
 }
 
 /* ------------------------------------------------------------------ */
-/* GPS CURRENT LOCATION (async)                                      */
+/*  GPS CURRENT LOCATION (async)                                      */
 /* ------------------------------------------------------------------ */
 
 function useCurrentLocation() { useCurrentLocationAsync(); }
@@ -485,7 +499,7 @@ function useCurrentLocationAsync() {
 }
 
 /* ------------------------------------------------------------------ */
-/* UI HELPERS                                                         */
+/*  UI HELPERS                                                         */
 /* ------------------------------------------------------------------ */
 
 const delay = ms => new Promise(r => setTimeout(r, ms));
@@ -514,7 +528,7 @@ function checkStartReady() {
 }
 
 /* ------------------------------------------------------------------ */
-/* LOAD LOCATIONS                                                     */
+/*  LOAD LOCATIONS                                                     */
 /* ------------------------------------------------------------------ */
 
 async function loadLocations() {
@@ -534,7 +548,7 @@ async function loadLocations() {
 }
 
 /* ------------------------------------------------------------------ */
-/* PAGE LOAD                                                          */
+/*  PAGE LOAD                                                          */
 /* ------------------------------------------------------------------ */
 
 window.onload = async function() {
@@ -547,7 +561,7 @@ window.onload = async function() {
 };
 
 /* ------------------------------------------------------------------ */
-/* START NAVIGATION                                                   */
+/*  START NAVIGATION                                                   */
 /* ------------------------------------------------------------------ */
 
 async function startNavigation() {
@@ -572,6 +586,7 @@ async function startNavigation() {
     lastSpokenInstruction = ""; lastSpokenAnnounceType = "";
     lastSpokenDist = -1; lastStepSpoken = -1;
     preWarnSpoken = new Set(); continueSpokenAt = -1;
+    offRouteConfirmCount = 0; recalcInProgress = false; hideOffRouteBanner();
 
     // Draw full route on map
     drawRoute(routeNodeIds, 0);
@@ -587,36 +602,8 @@ async function startNavigation() {
     speak("Navigation started. Heading to " + destName + ". Acquiring GPS signal.");
     setGpsStatus("waiting","Acquiring GPS signal...");
 
-    // Start compass immediately
-    startCompass();  
-
-    // UPGRADE 2: Try to get initial GPS fix to use actual position as start
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const initLat = pos.coords.latitude;
-      const initLng = pos.coords.longitude;
-      try {
-        const gpsRes  = await fetch("/start_from_gps", {
-          method:"POST", headers:{"Content-Type":"application/json"},
-          body: JSON.stringify({lat:initLat, lng:initLng, destination:dest})
-        });
-        const gpsData = await gpsRes.json();
-        if (!gpsData.error) {
-          session_id   = gpsData.session_id;
-          totalSteps   = gpsData.total_steps;
-          currentStep  = 0;
-          routeNodeIds = gpsData.route;
-          roadGeometry = gpsData.road_geometry || [];
-          drawRoute(routeNodeIds, 0);
-        }
-      } catch(e) {}
-      
-      // Start continuous tracking
-      watchId = navigator.geolocation.watchPosition(sendLocation, gpsError, { enableHighAccuracy:true, maximumAge:0, timeout:15000 });
-    }, () => {
-      // Fall back to node-based start if GPS fails to start quickly
-      watchId = navigator.geolocation.watchPosition(sendLocation, gpsError, { enableHighAccuracy:true, maximumAge:0, timeout:15000 });
-    }, { enableHighAccuracy:true, timeout:10000 });
-
+    watchId = navigator.geolocation.watchPosition(sendLocation, gpsError, { enableHighAccuracy:true, maximumAge:0, timeout:30000 });
+    startCompass();  // start phone compass for accurate heading
   } catch(e) {
     setGpsStatus("error","Server connection failed."); speak("Could not connect to server.");
     document.getElementById("start-btn").disabled = false;
@@ -624,7 +611,7 @@ async function startNavigation() {
 }
 
 /* ------------------------------------------------------------------ */
-/* SEND GPS TO SERVER  — Google Maps-grade client                    */
+/*  SEND GPS TO SERVER  — Google Maps-grade client                    */
 /* ------------------------------------------------------------------ */
 
 // Tracking state for smart speech deduplication
@@ -675,29 +662,12 @@ async function sendLocation(position) {
     });
     const data = await res.json();
     if (data.error) { setGpsStatus("error", "Session error."); return; }
-    if (data.instruction === "Navigation complete." || data.arrived) { showArrived(); return; }
+    if (data.instruction === "Navigation complete.") { showArrived(); return; }
 
     const instruction  = data.instruction;
     const distance     = Math.round(data.distance);
     const step         = data.step ?? currentStep;
     const announceType = data.announce_type || "continue";
-    const offRoute     = data.off_route || false;
-
-    // ── UPGRADE 3: Off-Route Handling (with 8s speech cooldown) ────
-    if (offRoute) {
-      const now = Date.now();
-      if (!window._lastOffRouteSpeak || now - window._lastOffRouteSpeak > 8000) {
-        window._lastOffRouteSpeak = now;
-        speak(instruction);
-      }
-      document.getElementById("instruction-text").innerText = "⚠️ " + instruction;
-      // If we are off-route, display distance to path instead of distance to next node
-      document.getElementById("banner-distance").innerText  = Math.round(data.distance) + " m to path";
-      document.getElementById("step-badge").innerText       = "OFF ROUTE";
-      return;
-    }
-    window._lastOffRouteSpeak = 0;
-
 
     // ── Redraw route on step change ────────────────────────────────
     if (step !== currentStep) {
@@ -754,6 +724,9 @@ async function sendLocation(position) {
       }
     }
 
+    // ── Off-route handling ────────────────────────────────────────
+    handleOffRoute(!!data.off_route);
+
     // ── Update UI banner ───────────────────────────────────────────
     document.getElementById("instruction-text").innerText = instruction;
     document.getElementById("banner-distance").innerText  = distance + " m";
@@ -807,7 +780,109 @@ function updateBearingOverlay(targetBear, userHead) {
 }
 
 /* ------------------------------------------------------------------ */
-/* PROGRESS                                                           */
+/*  OFF-ROUTE DETECTION & RECALCULATION                               */
+/* ------------------------------------------------------------------ */
+
+let offRouteBannerShown  = false;
+let recalcInProgress     = false;
+let offRouteConfirmCount = 0;
+
+function handleOffRoute(isOffRoute) {
+  if (!isOffRoute) {
+    offRouteConfirmCount = 0;
+    hideOffRouteBanner();
+    return;
+  }
+  offRouteConfirmCount++;
+
+  // Show banner immediately on first detection
+  if (!offRouteBannerShown) {
+    showOffRouteBanner();
+  }
+
+  // Auto-recalculate after 4 consecutive off-route ticks (~8 s)
+  if (offRouteConfirmCount >= 4 && !recalcInProgress) {
+    recalcInProgress = true;
+    speakNav("You seem to be off route. Recalculating.");
+    recalculateRoute();
+  }
+}
+
+function showOffRouteBanner() {
+  offRouteBannerShown = true;
+  let el = document.getElementById("off-route-banner");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "off-route-banner";
+    el.style.cssText = `
+      position:fixed; top:0; left:0; right:0; z-index:6000;
+      background:linear-gradient(135deg,#ff4d6d,#c0392b);
+      color:#fff; text-align:center; padding:14px 16px;
+      font-family:'Sora',sans-serif; font-size:15px; font-weight:700;
+      display:flex; align-items:center; justify-content:space-between;
+      box-shadow:0 4px 20px rgba(255,77,109,0.5);
+    `;
+    el.innerHTML = `
+      <span>⚠️ Off Route</span>
+      <span style="font-size:13px;font-weight:400;">Recalculating…</span>
+      <button onclick="recalculateRoute()" style="
+        background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4);
+        color:#fff; padding:6px 14px; border-radius:20px;
+        font-size:13px; cursor:pointer; font-family:'Sora',sans-serif;">
+        Recalc Now
+      </button>
+    `;
+    document.body.prepend(el);
+  }
+  el.style.display = "flex";
+  speakNav("Off route. Recalculating your path.");
+}
+
+function hideOffRouteBanner() {
+  offRouteBannerShown = false;
+  const el = document.getElementById("off-route-banner");
+  if (el) el.style.display = "none";
+}
+
+async function recalculateRoute() {
+  if (!session_id || lastLat === null) return;
+  recalcInProgress = true;
+  try {
+    const res  = await fetch("/recalculate", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({session_id, lat: lastLat, lng: lastLng})
+    });
+    const data = await res.json();
+    if (data.error) {
+      speakNav("Could not recalculate. Please check your position.");
+      recalcInProgress = false;
+      return;
+    }
+
+    // Update route state
+    routeNodeIds       = data.route;
+    roadGeometry       = data.road_geometry || [];
+    totalSteps         = data.total_steps;
+    currentStep        = 0;
+    lastSpokenInstruction  = "";
+    lastStepSpoken     = -1;
+    preWarnSpoken      = new Set();
+    continueSpokenAt   = -1;
+    offRouteConfirmCount = 0;
+
+    drawRoute(routeNodeIds, 0);
+    hideOffRouteBanner();
+    speakNav("Route updated. " + routeNodeIds.length + " steps to your destination.");
+
+  } catch(e) {
+    speakNav("Recalculation failed. Please continue or restart navigation.");
+  }
+  recalcInProgress = false;
+}
+
+/* ------------------------------------------------------------------ */
+/*  PROGRESS                                                           */
 /* ------------------------------------------------------------------ */
 
 function updateProgress(step) {
@@ -817,7 +892,7 @@ function updateProgress(step) {
 }
 
 /* ------------------------------------------------------------------ */
-/* ARRIVED                                                            */
+/*  ARRIVED                                                            */
 /* ------------------------------------------------------------------ */
 
 function showArrived() {
@@ -837,7 +912,7 @@ function showArrived() {
 }
 
 /* ------------------------------------------------------------------ */
-/* STOP NAVIGATION                                                    */
+/*  STOP NAVIGATION                                                    */
 /* ------------------------------------------------------------------ */
 
 function stopNavigation() {
@@ -845,7 +920,9 @@ function stopNavigation() {
   session_id = null; lastSpokenInstruction = ""; userHeading = -1;
   compassHeading = -1; lastLat = null; lastLng = null;
   lastStepSpoken = -1; preWarnSpoken = new Set(); continueSpokenAt = -1;
+  offRouteConfirmCount = 0; recalcInProgress = false;
   routeNodeIds = [];
+  hideOffRouteBanner();
   const bo = document.getElementById("bearing-overlay");
   if (bo) bo.remove();
 
@@ -883,7 +960,7 @@ function stopNavigation() {
 }
 
 /* ------------------------------------------------------------------ */
-/* GPS ERROR                                                          */
+/*  GPS ERROR                                                          */
 /* ------------------------------------------------------------------ */
 
 function gpsError(error) {
@@ -895,8 +972,8 @@ function gpsError(error) {
 
 
 /* ================================================================== */
-/* QR CODE SCANNER  — uses native BarcodeDetector (Android Chrome)   */
-/* falls back to jsQR if not available            */
+/*  QR CODE SCANNER  — uses native BarcodeDetector (Android Chrome)   */
+/*                     falls back to jsQR if not available            */
 /* ================================================================== */
 
 let qrStream     = null;
@@ -1163,7 +1240,7 @@ async function matchQRToLocation(data) {
 /* ── Indoor destination picker ───────────────────────────────────── */
 
 /* ================================================================== */
-/* INDOOR NAVIGATION — Admin Block                                    */
+/*  INDOOR NAVIGATION — Admin Block                                    */
 /* ================================================================== */
 
 let indoorStart   = null;
@@ -1238,27 +1315,58 @@ async function selectIndoorDest(destId, destName) {
 }
 
 function showStairsWarning(destId, destName) {
+  // Store globally so addEventListener callbacks can safely reference them
+  window._stairDestId   = destId;
+  window._stairDestName = destName;
+
   renderIndoorPanel(`
-    <div style="text-align:center;padding:8px 0 16px;">
-      <div style="font-size:40px;margin-bottom:8px;">⚠️</div>
-      <div style="font-size:17px;font-weight:700;color:#ffb800;margin-bottom:8px;">Staircase on this route</div>
-      <div style="font-size:13px;color:#7a8dab;line-height:1.6;margin-bottom:20px;">
-        The route to <b style="color:#e8f0fe;">${destName}</b> uses a staircase.<br>
-        If you have difficulty using stairs, we recommend taking the <b style="color:#00d4ff;">lift</b> instead.
+    <div style="text-align:center;padding:8px 0 4px;">
+      <div style="font-size:44px;margin-bottom:10px;">⚠️</div>
+      <div style="font-size:18px;font-weight:700;color:#ffb800;margin-bottom:10px;">Staircase Ahead</div>
+      <div style="font-size:14px;color:#aac;line-height:1.7;margin-bottom:22px;padding:0 4px;">
+        The route to <b style="color:#e8f0fe;">${destName}</b> includes a staircase.<br>
+        <span style="color:#00d4ff;">Tap a button below to choose your route.</span>
       </div>
-      <button class="ind-btn" style="margin-bottom:10px;background:linear-gradient(135deg,#00d4ff20,#00d4ff40);
-              border-color:#00d4ff;color:#00d4ff;font-weight:700;font-size:15px;"
-              onclick="rerouteViaLift('${destId}','${destName.replace(/'/g,"\\'")}')">
-        🛗 Use Lift Instead (Recommended)
+      <button id="btn-use-lift"
+        style="display:flex;align-items:center;gap:12px;width:100%;padding:18px 16px;
+               margin-bottom:12px;background:linear-gradient(135deg,#00d4ff22,#00d4ff44);
+               border:2px solid #00d4ff;border-radius:14px;color:#00d4ff;
+               font-size:16px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif;">
+        <span style="font-size:26px;">🛗</span>
+        <div style="text-align:left;">
+          <div>Use Lift Instead</div>
+          <div style="font-size:11px;font-weight:400;color:#7a8dab;margin-top:2px;">Recommended · No stairs</div>
+        </div>
       </button>
-      <button class="ind-btn" style="margin-bottom:10px;color:#ffb800;border-color:#ffb800;"
-              onclick="proceedWithStairs('${destName.replace(/'/g,"\\'")}')">
-        🚶 I can use stairs — Continue
+      <button id="btn-use-stairs"
+        style="display:flex;align-items:center;gap:12px;width:100%;padding:18px 16px;
+               margin-bottom:12px;background:#1a2235;border:2px solid #ffb800;
+               border-radius:14px;color:#ffb800;font-size:16px;font-weight:700;
+               cursor:pointer;font-family:'Sora',sans-serif;">
+        <span style="font-size:26px;">🚶</span>
+        <div style="text-align:left;">
+          <div>I Can Use Stairs</div>
+          <div style="font-size:11px;font-weight:400;color:#7a8dab;margin-top:2px;">Hold the handrail firmly</div>
+        </div>
       </button>
-      <button class="ind-cancel" onclick="closeIndoorPanel()">✕ Cancel</button>
+      <button class="ind-cancel" id="btn-stair-cancel">✕ Cancel</button>
     </div>
   `);
-  speak("Warning. This route uses a staircase. Would you like to use the lift instead? It is safer and recommended.");
+
+  // Attach listeners AFTER render — safe, no inline onclick with special chars
+  document.getElementById("btn-use-lift").addEventListener("click", () => {
+    rerouteViaLift(window._stairDestId, window._stairDestName);
+  });
+  document.getElementById("btn-use-stairs").addEventListener("click", () => {
+    proceedWithStairs(window._stairDestName);
+  });
+  document.getElementById("btn-stair-cancel").addEventListener("click", closeIndoorPanel);
+
+  speak(
+    "Warning. The route to " + destName + " uses a staircase. " +
+    "Tap the top button to use the lift instead, which is recommended. " +
+    "Or tap the second button if you can use stairs."
+  );
 }
 
 async function rerouteViaLift(destId, destName) {
@@ -1365,7 +1473,7 @@ function closeIndoorPanel() {
 }
 
 /* ================================================================== */
-/* INDOOR NAVIGATION — Dashboard button entry point                  */
+/*  INDOOR NAVIGATION — Dashboard button entry point                  */
 /* ================================================================== */
 
 async function openIndoorNav() {
