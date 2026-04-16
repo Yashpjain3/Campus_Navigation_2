@@ -49,11 +49,12 @@ def point_to_segment_dist(plat, plng, alat, alng, blat, blng):
     return sqrt(dx*dx + dy*dy)
 
 def dist_to_route(slat, slng, flat_wps, wp_idx):
-    """Minimum perpendicular distance from position to remaining route segments."""
+    """Minimum perpendicular distance from position to remaining route segments.
+    Checks a wide window to handle GPS jumps at junctions."""
     best = float("inf")
     wps = flat_wps
-    # Check current segment and a few ahead
-    for i in range(max(0, wp_idx - 1), min(wp_idx + 5, len(wps) - 1)):
+    # Wide window: 3 behind, 12 ahead — catches GPS drift at junctions
+    for i in range(max(0, wp_idx - 3), min(wp_idx + 12, len(wps) - 1)):
         d = point_to_segment_dist(
             slat, slng,
             wps[i]["lat"], wps[i]["lng"],
@@ -409,25 +410,50 @@ def update_location():
     upcoming_dist  = None
     for look in range(wp_idx + 1, min(wp_idx + LOOKAHEAD, len(flat_wps))):
         candidate = flat_wps[look]
-        if candidate["is_turn"] and abs(candidate["turn_angle"]) > 35:
+        if candidate["is_turn"] and abs(candidate.get("turn_angle", 0)) > 30:
             d = haversine(slat, slng, candidate["lat"], candidate["lng"])
-            if 15 < d < 80:     # only announce if 15-80 m away
+            if 8 < d < 90:      # announce if 8-90 m away (closer trigger)
                 upcoming_turn = candidate
                 upcoming_dist = d
                 break
 
     # ── Choose instruction type ───────────────────────────────────────
-    # 1) Current turn: the wp we're at IS a turn point
-    # 2) Upcoming pre-warning: a turn is coming in 15-80 m
-    # 3) Continue straight
-    if wp["is_turn"] and dist_wp < 20:
-        ann_type = "current"
+    # 1) Current turn: we ARE at a turn point (within 35m — wider for GPS noise)
+    # 2) Junction turn: we just entered a new segment that begins with a turn
+    #    (e.g. just reached CS Lawn Circle, new segment bears LEFT to GJB)
+    # 3) Upcoming pre-warning: a turn is 15–80 m ahead
+    # 4) Continue straight
+
+    # Detect junction entry — first wp of a new node segment that IS a turn
+    just_at_junction_turn = (
+        wp["is_turn"]
+        and abs(wp["turn_angle"]) > 30
+        and dist_wp < 40
+    )
+
+    # Also detect: the wp we're about to hit (wp_idx+1) is a significant turn
+    # AND we're very close to it — "about to turn" 
+    next_wp = flat_wps[wp_idx + 1] if wp_idx + 1 < len(flat_wps) else None
+    about_to_turn = (
+        next_wp is not None
+        and next_wp["is_turn"]
+        and abs(next_wp.get("turn_angle", 0)) > 30
+        and haversine(slat, slng, next_wp["lat"], next_wp["lng"]) < 25
+    )
+
+    if just_at_junction_turn or about_to_turn:
+        ann_type  = "current"
+        if about_to_turn and not just_at_junction_turn:
+            road_bear    = next_wp["bearing"]
+            next_name    = next_wp["next_node_name"]
+            dist_to_node = haversine(slat, slng, next_wp["lat"], next_wp["lng"])
+            is_dest      = next_wp.get("is_dest_node", False)
     elif upcoming_turn and upcoming_dist:
-        ann_type = "upcoming"
-        road_bear = upcoming_turn["bearing"]
-        next_name = upcoming_turn["next_node_name"]
+        ann_type     = "upcoming"
+        road_bear    = upcoming_turn["bearing"]
+        next_name    = upcoming_turn["next_node_name"]
         dist_to_node = upcoming_dist
-        is_dest = upcoming_turn.get("is_dest_node", False)
+        is_dest      = upcoming_turn.get("is_dest_node", False)
     else:
         ann_type = "continue"
 
@@ -439,8 +465,8 @@ def update_location():
 
     # ── Off-route detection ──────────────────────────────────────────
     # Check perpendicular distance from smoothed position to route polyline
-    OFF_ROUTE_THRESHOLD = 35   # metres off the route line → trigger warning
-    OFF_ROUTE_CONFIRM   = 3    # consecutive off-route ticks before alerting
+    OFF_ROUTE_THRESHOLD = 50   # metres — wider tolerance for GPS noise at junctions
+    OFF_ROUTE_CONFIRM   = 6    # 6 consecutive ticks (~6 seconds) before alerting
 
     route_deviation = dist_to_route(slat, slng, flat_wps, wp_idx)
     with session_lock:
@@ -452,7 +478,15 @@ def update_location():
                 u["off_route_count"] = 0
             off_route_count = u.get("off_route_count", 0)
 
-    off_route = off_route_count >= OFF_ROUTE_CONFIRM
+    # Suppress off-route if user is within 40m of any node on the route
+    # (they may be at a junction where GPS jumps around)
+    near_route_node = any(
+        haversine(slat, slng,
+                  campus_data["locations"][n]["lat"],
+                  campus_data["locations"][n]["lng"]) < 40
+        for n in route if "lat" in campus_data["locations"].get(n, {})
+    )
+    off_route = (off_route_count >= OFF_ROUTE_CONFIRM) and not near_route_node
 
     return jsonify({
         "instruction":    instruction,
