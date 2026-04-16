@@ -609,9 +609,20 @@ def indoor_route():
                 lift_steps = _indoor["routes"][lift_key]
                 break
 
-    if use_lift and has_lift_alternative and lift_steps:
-        return jsonify({"steps": lift_steps, "found": True,
-                        "uses_stairs": False, "has_lift_alternative": False})
+    # If use_lift requested, try the :lift variant of the route
+    if use_lift:
+        lift_key = key + ":lift"
+        rev_lift_key = rev + ":lift"
+        if lift_key in _indoor["routes"]:
+            return jsonify({"steps": _indoor["routes"][lift_key], "found": True,
+                            "uses_stairs": False, "has_lift_alternative": False})
+        elif rev_lift_key in _indoor["routes"]:
+            return jsonify({"steps": list(reversed(_indoor["routes"][rev_lift_key])),
+                            "found": True, "uses_stairs": False, "has_lift_alternative": False})
+        # Fallback to generic lift_steps if available
+        elif has_lift_alternative and lift_steps:
+            return jsonify({"steps": lift_steps, "found": True,
+                            "uses_stairs": False, "has_lift_alternative": False})
 
     return jsonify({"steps": steps, "found": True,
                     "uses_stairs": uses_stairs,
