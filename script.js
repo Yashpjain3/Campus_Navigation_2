@@ -698,14 +698,15 @@ async function sendLocation(position) {
 
     } else if (announceType === "upcoming") {
       // Pre-turn warning — speak at ~60 m and again at ~20 m
-      const warnKey60 = instrKey + "|60";
-      const warnKey20 = instrKey + "|20";
-      if (distance <= 65 && distance > 30 && !preWarnSpoken.has(warnKey60)) {
-        preWarnSpoken.add(warnKey60);
+      // Pre-warn at 80m ("In 80 meters, turn left") and again at 25m
+      const warnKey80 = instrKey + "|80";
+      const warnKey25 = instrKey + "|25";
+      if (distance <= 85 && distance > 35 && !preWarnSpoken.has(warnKey80)) {
+        preWarnSpoken.add(warnKey80);
         speakNav(instruction);
         lastSpokenInstruction = instrKey;
-      } else if (distance <= 25 && !preWarnSpoken.has(warnKey20)) {
-        preWarnSpoken.add(warnKey20);
+      } else if (distance <= 30 && !preWarnSpoken.has(warnKey25)) {
+        preWarnSpoken.add(warnKey25);
         speakNav(instruction);
         lastSpokenInstruction = instrKey;
       }
@@ -800,8 +801,9 @@ function handleOffRoute(isOffRoute) {
     showOffRouteBanner();
   }
 
-  // Auto-recalculate after 4 consecutive off-route ticks (~8 s)
-  if (offRouteConfirmCount >= 4 && !recalcInProgress) {
+  // Auto-recalculate after 8 consecutive off-route ticks (~16 s)
+  // This prevents false recalculations at junctions where GPS jumps
+  if (offRouteConfirmCount >= 8 && !recalcInProgress) {
     recalcInProgress = true;
     speakNav("You seem to be off route. Recalculating.");
     recalculateRoute();
@@ -835,7 +837,10 @@ function showOffRouteBanner() {
     document.body.prepend(el);
   }
   el.style.display = "flex";
-  speakNav("Off route. Recalculating your path.");
+  // Only speak after 2nd detection to avoid noise at junctions
+  if (offRouteConfirmCount > 2) {
+    speakNav("You may be off route. Please check your direction.");
+  }
 }
 
 function hideOffRouteBanner() {
