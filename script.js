@@ -1151,11 +1151,6 @@ function qrLoopJsQR(ts) {
   if (!qrActive) return;
   const video  = document.getElementById("qr-video");
   const canvas = document.getElementById("qr-canvas");
-   // ADD THIS LINE: iOS won't provide pixels until this state is reached
-  if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      const canvas = document.getElementById("qr-canvas");
-      canvas.width  = video.videoWidth;
-      canvas.height = video.videoHeight;
 
   if (video.videoWidth && video.videoHeight) {
     canvas.width  = video.videoWidth;
