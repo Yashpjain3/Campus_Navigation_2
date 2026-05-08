@@ -77,11 +77,8 @@
       "You are now at the Admin Block outdoor entrance."
     ],
     "indoor_lift_ground\u2192indoor_stairs_ground": [
-      "Walk straight ahead with a slight left for about 30 steps.",
-      "Carefully step down 2 stairs.",
-      "You are now at the Admin Block outdoor entrance.",
-      "Climb up 2 stairs into the Admin Block.",
-      "Walk west for 10 steps.",
+      "turn left and walk ahead with a slight right for about 15 steps.",
+      "Carefull you are near the stairs.",
       "You have reached the ground floor staircase."
     ],
     "indoor_lift_ground\u2192indoor_lift_first": [
@@ -94,14 +91,14 @@
       "The lift will stop at the first floor. Step out carefully.",
       "You are now on the First Floor.",
       "Turn right towards the south-west and walk 5 steps.",
-      "Reference Section is here. You have arrived."
+      "Reference Section is here on your right. You have arrived."
     ],
     "indoor_lift_ground\u2192indoor_ab104": [
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
       "You are now on the First Floor.",
-      "Turn slightly towards the north-east and walk 15 steps.",
-      "Turn north and walk 50 steps.",
+      "Turn slightly towards the north-east direction that is the left and walk 15 steps.",
+      "Turn north that is slight left and walk 50 steps.",
       "AB104 is here. You have arrived."
     ],
     "indoor_lift_ground\u2192indoor_stairs_mid": [
@@ -164,7 +161,7 @@
       "You are now on the Second Floor.",
       "Turn towards the north-east and walk 17 steps.",
       "Turn north and walk 4 steps.",
-      "Analog Electronics Lab is here. You have arrived.",
+      "Analog Electronics Lab is here.",
       "From Analog Electronics Lab, continue north for 29 steps.",
       "Digital Lab is here. You have arrived."
     ],
@@ -174,9 +171,9 @@
       "You are now on the Second Floor.",
       "Turn towards the north-east and walk 17 steps.",
       "Turn north and walk 4 steps.",
-      "Analog Electronics Lab is here. You have arrived.",
+      "Analog Electronics Lab is here.",
       "From Analog Electronics Lab, continue north for 29 steps.",
-      "Digital Lab is here. You have arrived.",
+      "Digital Lab is here.",
       "From Digital Lab, continue north for 22 steps.",
       "Communication Lab is here. You have arrived."
     ],
@@ -186,11 +183,11 @@
       "You are now on the Second Floor.",
       "Turn towards the north-east and walk 17 steps.",
       "Turn north and walk 4 steps.",
-      "Analog Electronics Lab is here. You have arrived.",
+      "Analog Electronics Lab is here.",
       "From Analog Electronics Lab, continue north for 29 steps.",
-      "Digital Lab is here. You have arrived.",
+      "Digital Lab is here.",
       "From Digital Lab, continue north for 22 steps.",
-      "Communication Lab is here. You have arrived.",
+      "Communication Lab is here.",
       "From Communication Lab, continue north for 10 steps.",
       "AB203 is here. You have arrived."
     ],
@@ -231,7 +228,7 @@
     ],
     "indoor_admin_exit\u2192indoor_stairs_ground": [
       "Climb up 2 stairs into the Admin Block.",
-      "Walk west for 10 steps.",
+      "Walk slight right for 10 steps and then take a sharp right after 5 steps.",
       "You have reached the ground floor staircase."
     ],
     "indoor_admin_exit\u2192indoor_lift_first": [
@@ -3151,7 +3148,7 @@
       "From AB203, continue north for 48 steps.",
       "VLSI Lab is here. You have arrived."
     ],
-    "indoor_lift_ground\u2192indoor_stairs_top:lift": [
+    "indoor_lift_ground\u2192indoor_vlsilab:lift": [
       "Lift route selected. No stairs on this path.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
@@ -3166,9 +3163,19 @@
       "From Communication Lab, continue north for 10 steps.",
       "AB203 is here. You have arrived.",
       "From AB203, continue north for 48 steps.",
-      "VLSI Lab is here. You have arrived.",
-      "From VLSI Lab, turn east and walk 10 steps.",
-      "Make a U-turn. The staircase is right here."
+      "VLSI Lab is here. You have arrived."
+    ],
+    "indoor_admin_exit\u2192indoor_stairs_mid:lift": [
+      "Lift route selected. No stairs on this path.",
+      "Climb up 2 stairs into the Admin Block.",
+      "Walk straight with a slight right for about 30 steps.",
+      "You have arrived at the Ground Floor Lift.",
+      "Enter the lift and press button for the First Floor (1).",
+      "The lift will stop at the first floor. Step out carefully.",
+      "You are now on the First Floor.",
+      "Turn slightly towards the north-east and walk 15 steps.",
+      "Turn north and walk 50 steps.",
+      "AB104 is here. You have arrived.","
     ],
     "indoor_admin_exit\u2192indoor_stairs_mid:lift": [
       "Lift route selected. No stairs on this path.",
@@ -3247,11 +3254,7 @@
     ],
     "indoor_stairs_ground\u2192indoor_lift_first:lift": [
       "Lift route selected. No stairs on this path.",
-      "From the ground floor staircase landing, walk east for 10 steps.",
-      "Carefully step down 2 stairs.",
-      "You are now at the Admin Block outdoor entrance.",
-      "Climb up 2 stairs into the Admin Block.",
-      "Walk straight with a slight right for about 30 steps.",
+      "From the ground floor staircase landing, walk slight left for 10 steps.",
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
@@ -3259,11 +3262,7 @@
     ],
     "indoor_stairs_ground\u2192indoor_refsection:lift": [
       "Lift route selected. No stairs on this path.",
-      "From the ground floor staircase landing, walk east for 10 steps.",
-      "Carefully step down 2 stairs.",
-      "You are now at the Admin Block outdoor entrance.",
-      "Climb up 2 stairs into the Admin Block.",
-      "Walk straight with a slight right for about 30 steps.",
+      "From the ground floor staircase landing, walk sligh left for 10 steps.",
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
@@ -3273,11 +3272,7 @@
     ],
     "indoor_stairs_ground\u2192indoor_ab104:lift": [
       "Lift route selected. No stairs on this path.",
-      "From the ground floor staircase landing, walk east for 10 steps.",
-      "Carefully step down 2 stairs.",
-      "You are now at the Admin Block outdoor entrance.",
-      "Climb up 2 stairs into the Admin Block.",
-      "Walk straight with a slight right for about 30 steps.",
+     "From the ground floor staircase landing, walk slight left for 10 steps.",
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
@@ -3288,11 +3283,7 @@
     ],
     "indoor_stairs_ground\u2192indoor_stairs_mid:lift": [
       "Lift route selected. No stairs on this path.",
-      "From the ground floor staircase landing, walk east for 10 steps.",
-      "Carefully step down 2 stairs.",
-      "You are now at the Admin Block outdoor entrance.",
-      "Climb up 2 stairs into the Admin Block.",
-      "Walk straight with a slight right for about 30 steps.",
+      "From the ground floor staircase landing, walk slight left for 10 steps.",
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the First Floor (1).",
       "The lift will stop at the first floor. Step out carefully.",
@@ -3306,11 +3297,7 @@
     ],
     "indoor_stairs_ground\u2192indoor_digitallab:lift": [
       "Lift route selected. No stairs on this path.",
-      "From the ground floor staircase landing, walk east for 10 steps.",
-      "Carefully step down 2 stairs.",
-      "You are now at the Admin Block outdoor entrance.",
-      "Climb up 2 stairs into the Admin Block.",
-      "Walk straight with a slight right for about 30 steps.",
+      "From the ground floor staircase landing, walk slight left for 10 steps.",
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
@@ -3323,11 +3310,7 @@
     ],
     "indoor_stairs_ground\u2192indoor_commlab:lift": [
       "Lift route selected. No stairs on this path.",
-      "From the ground floor staircase landing, walk east for 10 steps.",
-      "Carefully step down 2 stairs.",
-      "You are now at the Admin Block outdoor entrance.",
-      "Climb up 2 stairs into the Admin Block.",
-      "Walk straight with a slight right for about 30 steps.",
+       "From the ground floor staircase landing, walk slight left for 10 steps.",
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
@@ -3342,11 +3325,7 @@
     ],
     "indoor_stairs_ground\u2192indoor_ab203:lift": [
       "Lift route selected. No stairs on this path.",
-      "From the ground floor staircase landing, walk east for 10 steps.",
-      "Carefully step down 2 stairs.",
-      "You are now at the Admin Block outdoor entrance.",
-      "Climb up 2 stairs into the Admin Block.",
-      "Walk straight with a slight right for about 30 steps.",
+      "From the ground floor staircase landing, walk slight left for 10 steps.",
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
@@ -3363,11 +3342,7 @@
     ],
     "indoor_stairs_ground\u2192indoor_vlsilab:lift": [
       "Lift route selected. No stairs on this path.",
-      "From the ground floor staircase landing, walk east for 10 steps.",
-      "Carefully step down 2 stairs.",
-      "You are now at the Admin Block outdoor entrance.",
-      "Climb up 2 stairs into the Admin Block.",
-      "Walk straight with a slight right for about 30 steps.",
+      "From the ground floor staircase landing, walk slight left for 10 steps.",
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
@@ -3386,11 +3361,7 @@
     ],
     "indoor_stairs_ground\u2192indoor_stairs_top:lift": [
       "Lift route selected. No stairs on this path.",
-      "From the ground floor staircase landing, walk east for 10 steps.",
-      "Carefully step down 2 stairs.",
-      "You are now at the Admin Block outdoor entrance.",
-      "Climb up 2 stairs into the Admin Block.",
-      "Walk straight with a slight right for about 30 steps.",
+     "From the ground floor staircase landing, walk slight left for 10 steps.",
       "You have arrived at the Ground Floor Lift.",
       "Enter the lift and press button for the Second Floor (2).",
       "The lift will stop at the second floor. Step out carefully.",
