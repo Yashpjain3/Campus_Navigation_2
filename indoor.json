@@ -3175,7 +3175,7 @@
       "You are now on the First Floor.",
       "Turn slightly towards the north-east and walk 15 steps.",
       "Turn north and walk 50 steps.",
-      "AB104 is here. You have arrived.","
+      "AB104 is here. You have arrived."
     ],
     "indoor_admin_exit\u2192indoor_stairs_mid:lift": [
       "Lift route selected. No stairs on this path.",
