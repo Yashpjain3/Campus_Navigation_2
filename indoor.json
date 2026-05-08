@@ -3148,24 +3148,7 @@
       "From AB203, continue north for 48 steps.",
       "VLSI Lab is here. You have arrived."
     ],
-    "indoor_lift_ground\u2192indoor_vlsilab:lift": [
-      "Lift route selected. No stairs on this path.",
-      "Enter the lift and press button for the Second Floor (2).",
-      "The lift will stop at the second floor. Step out carefully.",
-      "You are now on the Second Floor.",
-      "Turn towards the north-east and walk 17 steps.",
-      "Turn north and walk 4 steps.",
-      "Analog Electronics Lab is here. You have arrived.",
-      "From Analog Electronics Lab, continue north for 29 steps.",
-      "Digital Lab is here. You have arrived.",
-      "From Digital Lab, continue north for 22 steps.",
-      "Communication Lab is here. You have arrived.",
-      "From Communication Lab, continue north for 10 steps.",
-      "AB203 is here. You have arrived.",
-      "From AB203, continue north for 48 steps.",
-      "VLSI Lab is here. You have arrived."
-    ],
-    "indoor_admin_exit\u2192indoor_stairs_mid:lift": [
+    "indoor_admin_exit\u2192indoor_ab104:lift": [
       "Lift route selected. No stairs on this path.",
       "Climb up 2 stairs into the Admin Block.",
       "Walk straight with a slight right for about 30 steps.",
